@@ -97,9 +97,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist), "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
-  --font-display: var(--font-instrument), "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: var(--font-body), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-code), "JetBrains Mono", ui-monospace, monospace;
+  --font-display: var(--font-heading), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -175,7 +175,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "cv11", "ss01", "ss03";
     caret-color: var(--signal);
     min-height: 100dvh;
   }
@@ -224,8 +224,17 @@
 @layer components {
   .font-display {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+  }
+  /* Two-tone headlines: the emphasised clause is set in the signal colour, not a faux italic
+     (Space Grotesk has no italic). Keeps every existing <span className="italic"> working. */
+  .font-display .italic,
+  .font-display.italic,
+  h1 .italic, h2 .italic, h3 .italic {
+    font-style: normal;
+    color: var(--signal);
   }
   .tabular {
     font-variant-numeric: tabular-nums;

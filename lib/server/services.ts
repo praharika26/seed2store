@@ -851,3 +851,17 @@ export async function verifyCrop(crop: Crop) {
 }
 
 export type { Notification }
+
+// ---------------------------------------------------------------------------
+// Chain ↔ lot joins (for the explorer)
+// ---------------------------------------------------------------------------
+
+/** Lots certified by the currently configured contract, keyed by token ID. */
+export async function lotsByToken(tokenIds: number[]) {
+  const ids = [...new Set(tokenIds.filter((n) => Number.isFinite(n)))]
+  if (!ids.length || !chainConfig.nftContract) return new Map<number, Crop>()
+  const rows = await store().list("crops", { nft_token_id: ids })
+  const current = chainConfig.nftContract.toLowerCase()
+  const hydrated = await hydrateCrops(rows.filter((c) => (c.nft_contract ?? "").toLowerCase() === current))
+  return new Map(hydrated.map((c) => [c.nft_token_id as number, c]))
+}

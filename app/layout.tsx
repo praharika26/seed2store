@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next"
 import type React from "react"
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/lib/wallet/wallet-provider"
+import { TxTrackerProvider } from "@/lib/wallet/tx-tracker"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ConnectDialog } from "@/components/connect-dialog"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
-const instrument = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-body" })
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code" })
+const display = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-heading" })
 
 export const metadata: Metadata = {
   title: { default: "Seed2Store — Certified crops, traded direct", template: "%s · Seed2Store" },
@@ -29,10 +30,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} ${instrument.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable} ${display.variable}`}>
       <body className="font-sans">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <WalletProvider>
+            <TxTrackerProvider>
             <a href="#main" className="bg-primary text-primary-foreground sr-only z-[60] rounded-full px-4 py-2 focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
               Skip to content
             </a>
@@ -41,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <SiteFooter />
             <ConnectDialog />
             <Toaster position="bottom-right" richColors={false} closeButton />
+            </TxTrackerProvider>
           </WalletProvider>
         </ThemeProvider>
         <Analytics />

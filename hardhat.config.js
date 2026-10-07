@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-ethers")
+require("@nomicfoundation/hardhat-verify")
 require("dotenv").config({ path: ".env.local" })
 require("dotenv").config()
 
@@ -21,10 +22,13 @@ module.exports = {
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
     },
   },
+  // Source verification: Sourcify needs no key; Etherscan is used too when ETHERSCAN_API_KEY is set.
+  sourcify: { enabled: true },
+  etherscan: { apiKey: process.env.ETHERSCAN_API_KEY || "" },
   paths: {
     sources: "./contracts",
     tests: "./test/contracts",

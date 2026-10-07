@@ -57,6 +57,13 @@ It runs with **zero configuration** (a seeded demo market, a burner wallet, loca
 | Orders: confirm payment, then ship | Orders: pay, then confirm delivery | |
 | Dashboard: revenue chart, sales by crop, to-do queue | Dashboard: spend chart, active bids, to-do queue | |
 
+**Blockchain visibility (every interaction is inspectable):**
+- **On-chain ledger** (`/chain`): every certificate mint, auction, bid, sale and ERC-721 transfer, decoded from the contract's events, with value, tx hash, block and age, plus contract stats (minted, volume, fees held).
+- **Transaction inspector** (`/chain/tx/:hash`): status, block, from/to, gas used, gas price, fee, the decoded function call and every event emitted, with an Etherscan link.
+- **NFT page** (`/token/:id`): the certificate NFT with current owner, issuer, `tokenURI`, its IPFS metadata JSON, the on-chain struct, and its full ownership history.
+- **My certificates** (`/certificates`): NFTs in your wallet and the ones you issued.
+- **Live transaction tracker**: every write shows *Sign in wallet → Broadcast → Mined in block N (gas, fee) → Recorded in MongoDB*, with the decoded call arguments.
+
 Also: real-time notifications (outbid, new bid, offer, sold, shipped, delivered), signed-message sign-in with any EIP-6963 wallet or a burner wallet, two themes (**Harvest Noir** dark and **Field Paper** light), and generative field artwork for lots without photos.
 
 ---
@@ -217,7 +224,13 @@ sequenceDiagram
 | `directPurchase(tokenId)` *payable* | Pays the grower minus the fee, transfers the NFT, refunds overpayment. Blocked while an auction is live. |
 | `getCropCertificate`, `getAuction`, `ownerOf`, `tokenURI` | Reads used by the app and the verify page. |
 
-**Networks:** `npm run deploy:local` (Hardhat, 31337), `npm run deploy:ganache` (7545, 1337), `npm run deploy:sepolia` (set `PRIVATE_KEY`). Each writes `deployments/<network>.json` and updates `.env.local`.
+**Networks:** `npm run deploy:local` (Hardhat, 31337), `npm run deploy:ganache` (7545, 1337) or `npm run deploy:sepolia`. Each writes `deployments/<network>.json` and updates `.env.local` (contract, chain, RPC, deploy block).
+
+### Deploying to Sepolia
+
+1. Put a testnet-only key in `.env.local` as `DEPLOYER_PRIVATE_KEY`, and fund its address with ~0.05 Sepolia ETH from a faucet (Google Cloud, Alchemy or Infura).
+2. Run `npm run deploy:sepolia`. It deploys, records the deploy block, sets the Etherscan explorer, switches to a testnet price rate (`NEXT_PUBLIC_ETH_USD=5000000`, so a $67,200 lot costs ~0.013 test-ETH), and verifies the source on Sourcify (and on Etherscan if `ETHERSCAN_API_KEY` is set).
+3. Restart `npm run dev`. Use **MetaMask on Sepolia** (or a burner wallet you fund from a faucet) for growers and buyers.
 
 **Pricing:** listings are in USD. On-chain values are converted at `NEXT_PUBLIC_ETH_USD` (default 2500 USD per ETH). Bids always send at least the contract's own minimum, so rounding can never make a valid bid revert.
 
@@ -256,6 +269,9 @@ All routes are under `/api`. Writes require a session (sign-in below); reads of 
 | GET | `/stats` · `/stats/market` | Your dashboard stats · market totals |
 | POST · GET | `/uploads` · `/uploads/:file` | Upload a photo · serve it |
 | GET | `/metadata/:id` | ERC-721 token metadata |
+| GET | `/chain/summary` · `/chain/events?token=` | Contract stats · decoded event ledger |
+| GET | `/chain/tx/:hash` · `/chain/token/:id` | Decoded transaction · NFT detail with metadata and history |
+| GET | `/chain/owned?address=` · `/chain/balance?address=` | Certificates held and issued · wallet balance |
 | GET | `/verify?q=` | Verify by serial, token ID, lot ID or hash |
 | GET | `/status` | Database, chain, storage and session status |
 
@@ -278,7 +294,9 @@ Copy `.env.example` to `.env.local`. Everything is optional.
 | `NEXT_PUBLIC_CHAIN_NAME` / `NEXT_PUBLIC_EXPLORER_URL` | derived | Labels and explorer links |
 | `NEXT_PUBLIC_ETH_USD` | `2500` | USD per ETH for on-chain prices |
 | `RPC_URL` | — | Server-only RPC override |
-| `PINATA_JWT` / `PINATA_GATEWAY` | — | Pin photos and metadata to IPFS instead of GridFS |
+| `PINATA_JWT` / `PINATA_GATEWAY` | — | Pin lot photos and NFT metadata (`tokenURI` = `ipfs://…`) to IPFS via Pinata |
+| `NEXT_PUBLIC_DEPLOY_BLOCK` | `0` | First block the explorer scans (written by the deploy script) |
+| `DEPLOYER_PRIVATE_KEY` / `ETHERSCAN_API_KEY` | — | Sepolia deployment and optional Etherscan verification |
 | `AUTH_SECRET` | auto-generated | Session signing key (stored in the database if unset) |
 | `PRIVATE_KEY`, `SEPOLIA_RPC_URL`, `GANACHE_RPC_URL` | — | Contract deployment |
 
@@ -353,4 +371,4 @@ test/                Vitest suites (services on both backends, date validation)
 docs/                guide PDF, walkthrough video, screenshots, legacy docs
 ```
 
-Built with Next.js 16, React 19, Tailwind CSS v4, MongoDB, ethers v6, Solidity 0.8.19 and Hardhat.
+Built with Next.js 16, React 19, Tailwind CSS v4 (Space Grotesk, Inter, JetBrains Mono), MongoDB Atlas, Pinata/IPFS, ethers v6, Solidity 0.8.19 and Hardhat.

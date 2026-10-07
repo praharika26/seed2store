@@ -149,8 +149,19 @@ export function Address({ value, className }: { value: string; className?: strin
   return <CopyValue value={value} display={shortAddress(value)} href={explorerAddress(value)} className={className} />
 }
 
+/** A transaction hash: opens the in-app inspector, with an Etherscan hop when an explorer is configured. */
 export function TxHash({ value, className }: { value: string; className?: string }) {
-  return <CopyValue value={value} display={shortHash(value)} href={explorerTx(value)} className={className} />
+  const ext = explorerTx(value)
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 font-mono text-[12.5px]", className)}>
+      <a href={`/chain/tx/${value}`} className="underline decoration-border-strong underline-offset-4 hover:decoration-foreground">{shortHash(value)}</a>
+      {ext && (
+        <a href={ext} target="_blank" rel="noreferrer" aria-label="View on Etherscan" className="text-muted-foreground hover:text-foreground">
+          <ExternalLink className="size-3" />
+        </a>
+      )}
+    </span>
+  )
 }
 
 /** Deterministic identicon-ish avatar from an address. */
@@ -183,7 +194,7 @@ export function PageHeader({ title, description, actions, className }: { title: 
   return (
     <header className={cn("mb-8 flex flex-col gap-5 sm:mb-10 md:flex-row md:items-end md:justify-between", className)}>
       <div className="max-w-2xl">
-        <h1 className="font-display text-[2.6rem] leading-[1.02] sm:text-[3.4rem]">{title}</h1>
+        <h1 className="font-display text-[2.2rem] leading-[1.05] sm:text-[2.9rem]">{title}</h1>
         {description && <p className="text-muted-foreground mt-3 text-[15px] leading-relaxed sm:text-base">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}

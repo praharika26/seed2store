@@ -21,7 +21,7 @@ export default async function Home() {
       {/* Hero ------------------------------------------------------------- */}
       <section className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:px-8 lg:pt-20 lg:pb-32">
         <div className="relative">
-          <h1 className="font-display text-[3.4rem] leading-[0.95] sm:text-[4.6rem] lg:text-[5.6rem]">
+          <h1 className="font-display text-[2.8rem] leading-[0.98] sm:text-[3.9rem] lg:text-[4.7rem]">
             Every harvest,
             <br />
             <span className="italic">on the record.</span>
@@ -88,7 +88,7 @@ export default async function Home() {
       {/* Fresh lots ------------------------------------------------------- */}
       <section className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 lg:px-8">
         <div className="mb-10 flex items-end justify-between gap-6">
-          <h2 className="font-display max-w-xl text-[2.6rem] leading-[1.02] sm:text-5xl">
+          <h2 className="font-display max-w-xl text-[2.2rem] leading-[1.05] sm:text-[2.6rem]">
             Fresh off the field, <span className="italic">with papers.</span>
           </h2>
           <Button asChild variant="outline" className="hidden sm:inline-flex">
@@ -108,7 +108,7 @@ export default async function Home() {
       <section id="how" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-32 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <h2 className="font-display text-[2.6rem] leading-[1.02] sm:text-5xl">
+            <h2 className="font-display text-[2.2rem] leading-[1.05] sm:text-[2.6rem]">
               From seed <span className="italic">to store</span>, nothing gets lost in between.
             </h2>
             <p className="text-muted-foreground mt-5 max-w-md leading-relaxed">
@@ -146,7 +146,7 @@ export default async function Home() {
 
       {/* Verify ----------------------------------------------------------- */}
       <section className="mx-auto max-w-3xl px-4 pt-32 text-center sm:px-6">
-        <h2 className="font-display text-[2.6rem] leading-[1.02] sm:text-5xl">
+        <h2 className="font-display text-[2.2rem] leading-[1.05] sm:text-[2.6rem]">
           Holding a lot? <span className="italic">Check its papers.</span>
         </h2>
         <p className="text-muted-foreground mx-auto mt-4 max-w-lg leading-relaxed">

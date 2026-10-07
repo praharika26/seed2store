@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import {
-  Bell, ChevronDown, Copy, LayoutDashboard, LogOut, Menu, Moon, Package, Settings, ShieldCheck, Sprout, Sun, Tractor, ShoppingBasket,
+  Award, Bell, Blocks, ChevronDown, Copy, LayoutDashboard, LogOut, Menu, Moon, Package, Settings, ShieldCheck, Sprout, Sun, Tractor, ShoppingBasket,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
@@ -19,13 +19,14 @@ import {
 import { useWallet } from "@/lib/wallet/wallet-provider"
 import { api, useApi } from "@/lib/api"
 import { displayName, shortAddress, timeAgo } from "@/lib/format"
-import { chainConfig } from "@/lib/config"
+import { chainConfig, SEPOLIA_FAUCETS } from "@/lib/config"
 import { cn } from "@/lib/utils"
 import type { Notification } from "@/lib/types/database"
 
 const PUBLIC_LINKS = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/auctions", label: "Auctions" },
+  { href: "/chain", label: "Ledger" },
   { href: "/verify", label: "Verify" },
 ]
 const FARMER_LINKS = [
@@ -190,7 +191,9 @@ function NotificationBell() {
 function AccountMenu() {
   const { user, walletName, disconnect, setRole } = useWallet()
   const router = useRouter()
+  const { data: bal } = useApi<{ eth: string; nfts: number }>(user ? `/api/chain/balance?address=${user.wallet_address}` : null, { refreshInterval: 15_000 })
   if (!user) return null
+  const empty = bal && Number(bal.eth) === 0
   const switchRole = async (role: "farmer" | "buyer") => {
     if (role === user.role) return
     await setRole(role)
@@ -213,6 +216,18 @@ function AccountMenu() {
             <div className="text-muted-foreground font-mono text-xs">{shortAddress(user.wallet_address)} · {walletName}</div>
           </div>
         </DropdownMenuLabel>
+        <div className="mx-1.5 mb-2 flex items-center justify-between rounded-xl border px-3 py-2 text-xs">
+          <span className="text-muted-foreground flex items-center gap-1.5"><span className="bg-signal size-1.5 rounded-full" />{chainConfig.name}</span>
+          <span className="tabular font-mono">{bal ? `${Number(bal.eth).toFixed(4)} ETH` : "…"}{bal && chainConfig.enabled ? ` · ${bal.nfts} NFT${bal.nfts === 1 ? "" : "s"}` : ""}</span>
+        </div>
+        {empty && chainConfig.isTestnet && (
+          <div className="bg-live-soft text-live mx-1.5 mb-2 rounded-xl border border-live/25 px-3 py-2 text-xs leading-relaxed">
+            This wallet has no Sepolia ETH. Copy the address and use a faucet:{" "}
+            {SEPOLIA_FAUCETS.slice(0, 2).map((f, i) => (
+              <a key={f.url} href={f.url} target="_blank" rel="noreferrer" className="underline">{i ? ", " : ""}{f.name}</a>
+            ))}
+          </div>
+        )}
         <div className="px-1.5 pb-1.5">
           <div className="bg-surface-2/70 grid grid-cols-2 gap-1 rounded-full border p-1" role="radiogroup" aria-label="Role">
             {(["buyer", "farmer"] as const).map((r) => (
@@ -235,6 +250,8 @@ function AccountMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/dashboard")}><LayoutDashboard /> Dashboard</DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push(user.role === "farmer" ? "/orders?tab=sales" : "/orders")}><Package /> Orders</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/certificates")}><Award /> My certificates (NFTs)</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/chain")}><Blocks /> On-chain ledger</DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/settings")}><Settings /> Profile & settings</DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/status")}><ShieldCheck /> Network status</DropdownMenuItem>
         <DropdownMenuItem

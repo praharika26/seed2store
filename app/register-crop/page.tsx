@@ -123,7 +123,7 @@ function Register() {
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
         <div>
-          <h1 className="font-display text-[2.6rem] leading-[1.02] sm:text-[3.4rem]">
+          <h1 className="font-display text-[2.2rem] leading-[1.05] sm:text-[2.9rem]">
             List a <span className="italic">lot</span>
           </h1>
           <p className="text-muted-foreground mt-3 max-w-lg leading-relaxed">

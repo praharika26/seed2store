@@ -238,8 +238,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const rpc = new JsonRpcProvider(chainConfig.rpcUrl, chainConfig.id, { staticNetwork: true })
       const wallet = new Wallet(pk, rpc)
       const balance = await rpc.getBalance(wallet.address)
-      if (balance < parseEther("1")) {
-        if (!chainConfig.isLocal) throw new Error(`Burner wallet ${wallet.address} has no ${chainConfig.name} ETH. Fund it or use a browser wallet.`)
+      if (!chainConfig.isLocal && balance === 0n) {
+        throw new Error(`Your burner wallet ${wallet.address} has no ${chainConfig.name} ETH. Send it some test ETH from a faucet (see Profile), or use MetaMask.`)
+      }
+      if (chainConfig.isLocal && balance < parseEther("1")) {
         const hundred = "0x56BC75E2D63100000"
         await rpc.send("hardhat_setBalance", [wallet.address, hundred]).catch(() => rpc.send("evm_setAccountBalance", [wallet.address, hundred]))
       }

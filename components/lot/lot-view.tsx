@@ -8,6 +8,7 @@ import { Certificate } from "@/components/certificate"
 import { Address, Avatar, CropStatusPill, Pill, TxHash } from "@/components/bits"
 import { ActionPanel } from "@/components/lot/action-panel"
 import { BidHistory, LotOffers } from "@/components/lot/lot-activity"
+import { ChainActivity } from "@/components/lot/chain-activity"
 import { useApi } from "@/lib/api"
 import { useWallet } from "@/lib/wallet/wallet-provider"
 import { cropTypeInfo } from "@/lib/crops"
@@ -73,7 +74,7 @@ export function LotView({ initial }: { initial: Crop }) {
             <Pill>{cropTypeInfo(crop.crop_type).label}{crop.variety ? ` · ${crop.variety}` : ""}</Pill>
             {crop.nft_minted ? <Pill tone="signal"><BadgeCheck className="size-3" /> On-chain #{crop.nft_token_id}</Pill> : <Pill tone="gold">{certificateSerial(crop.content_hash)}</Pill>}
           </div>
-          <h1 className="font-display mt-4 text-[2.6rem] leading-[1.02] sm:text-[3.3rem]">{crop.title}</h1>
+          <h1 className="font-display mt-4 text-[2.2rem] leading-[1.05] sm:text-[2.8rem]">{crop.title}</h1>
           <div className="mt-5 flex items-center gap-3">
             <Avatar address={crop.farmer?.wallet_address} name={crop.farmer?.display_name} />
             <div className="min-w-0">
@@ -114,6 +115,7 @@ export function LotView({ initial }: { initial: Crop }) {
             )}
           </section>
 
+          <ChainActivity crop={crop} />
           {auctionData && <BidHistory auction={auctionData.auction} bids={auctionData.bids} />}
           {user && <LotOffers crop={crop} isOwner={isOwner} onChange={refresh} />}
         </div>
@@ -124,7 +126,8 @@ export function LotView({ initial }: { initial: Crop }) {
           <div className="panel-flat divide-y text-sm">
             <Row label="Content hash"><span className="font-mono text-[12.5px] break-all">{crop.content_hash}</span></Row>
             <Row label="Grower wallet">{crop.farmer && <Address value={crop.farmer.wallet_address} />}</Row>
-            {crop.nft_minted && crop.nft_transaction_hash && <Row label="Mint transaction"><TxHash value={crop.nft_transaction_hash} /></Row>}
+            {crop.nft_minted && crop.nft_token_id != null && <Row label="NFT"><Link href={`/token/${crop.nft_token_id}`} className="text-gold font-mono text-[12.5px] underline decoration-gold/40 underline-offset-4">Seed2Store Certificate #{crop.nft_token_id}</Link></Row>}
+            {crop.nft_minted && crop.nft_transaction_hash && <Row label="Mint transaction"><Link href={`/chain/tx/${crop.nft_transaction_hash}`} className="font-mono text-[12.5px] underline decoration-border-strong underline-offset-4">{crop.nft_transaction_hash.slice(0, 10)}…{crop.nft_transaction_hash.slice(-6)}</Link></Row>}
             {crop.metadata_uri && (
               <Row label="Token metadata">
                 <a href={crop.metadata_uri.startsWith("ipfs://") ? `https://ipfs.io/ipfs/${crop.metadata_uri.slice(7)}` : crop.metadata_uri} target="_blank" rel="noreferrer" className="font-mono text-[12.5px] underline decoration-border-strong underline-offset-4">
