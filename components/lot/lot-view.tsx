@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { useState } from "react"
 import { ArrowLeft, BadgeCheck, CalendarDays, Droplets, Leaf, MapPin, Package, ShieldCheck, Warehouse } from "lucide-react"
-import { CropMedia } from "@/components/crop-art"
+import { CropMedia, PhotoCredit } from "@/components/crop-art"
+import { cropPhoto } from "@/lib/crop-photos"
 import { Certificate } from "@/components/certificate"
 import { Address, Avatar, CropStatusPill, Pill, TxHash } from "@/components/bits"
 import { ActionPanel } from "@/components/lot/action-panel"
@@ -50,6 +51,7 @@ export function LotView({ initial }: { initial: Crop }) {
           <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border">
             <CropMedia crop={crop} index={imageIndex} />
           </div>
+          {crop.images.length === 0 && <PhotoCredit photo={cropPhoto(crop.crop_type)} className="mt-2" />}
           {crop.images.length > 1 && (
             <div className="mt-3 flex gap-2.5 overflow-x-auto">
               {crop.images.map((src, i) => (

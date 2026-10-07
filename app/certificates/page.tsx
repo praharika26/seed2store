@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Award } from "lucide-react"
 import { AuthGate } from "@/components/auth-gate"
-import { CropArt, CropMedia } from "@/components/crop-art"
+import { CropMedia, CropPhotoImage } from "@/components/crop-art"
 import { When } from "@/components/chain/chain-bits"
 import { Empty, PageHeader, Skeleton } from "@/components/bits"
 import { Button } from "@/components/ui/button"
@@ -59,7 +59,7 @@ function Grid({ title, items, empty, action }: { title: string; items: Owned[]; 
           {items.map((t) => (
             <Link key={t.tokenId} href={`/token/${t.tokenId}`} className="panel lift group overflow-hidden">
               <div className="relative aspect-square overflow-hidden">
-                {t.lot ? <CropMedia crop={{ id: t.lot.id, crop_type: t.lot.crop_type, images: t.lot.images, title: t.title }} /> : <CropArt seed={`token-${t.tokenId}`} />}
+                {t.lot ? <CropMedia crop={{ id: t.lot.id, crop_type: t.lot.crop_type, images: t.lot.images, title: t.title }} /> : <CropPhotoImage />}
                 <span className="glass absolute top-3 left-3 rounded-full border px-2.5 py-0.5 font-mono text-[11px]">#{t.tokenId}</span>
               </div>
               <div className="p-4">

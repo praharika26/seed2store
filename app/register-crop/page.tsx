@@ -210,7 +210,7 @@ function Register() {
             )}
 
             {step === 2 && (
-              <Field label="Photos" hint="The first photo is the cover. Lots without photos get a generated field illustration.">
+              <Field label="Photos" hint="The first photo is the cover. Lots without photos show a credited, openly licensed photo of the crop.">
                 <ImageUploader value={images} onChange={setImages} />
               </Field>
             )}

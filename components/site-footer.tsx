@@ -13,7 +13,7 @@ export function SiteFooter() {
         </div>
         <FooterCol title="Market" links={[["Browse lots", "/marketplace"], ["Live auctions", "/auctions"], ["Verify a certificate", "/verify"]]} />
         <FooterCol title="Growers" links={[["List a lot", "/register-crop"], ["Dashboard", "/dashboard"], ["Offers", "/offers"]]} />
-        <FooterCol title="Platform" links={[["Network status", "/status"], ["Profile", "/settings"], ["How it works", "/#how"]]} />
+        <FooterCol title="Platform" links={[["Network status", "/status"], ["On-chain ledger", "/chain"], ["Photo credits", "/credits"]]} />
       </div>
       <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col gap-2 px-4 pb-10 text-xs sm:flex-row sm:justify-between sm:px-6 lg:px-8">
         <span>© {new Date().getFullYear()} Seed2Store</span>

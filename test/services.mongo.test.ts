@@ -24,6 +24,7 @@ async function reachable() {
 const available = await reachable()
 
 if (available) {
+  process.env.DEMO_SEED = "true"
   process.env.MONGODB_URI = uri
   process.env.MONGODB_DB = dbName
   runServiceSuite("mongodb")

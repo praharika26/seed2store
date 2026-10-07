@@ -41,7 +41,7 @@ Grain, coffee and produce still trade mostly through phone calls, middlemen and 
 - **Buyers** see exactly where, when and how it was grown, then buy outright, negotiate privately, or bid in an open auction.
 - **Anyone downstream** can paste a serial like `S2S-695D-EB66` and verify that the record hasn't changed since it was certified, and who holds the token today.
 
-It runs with **zero configuration** (a seeded demo market, a burner wallet, local storage) and scales up to **MongoDB** plus a real chain by setting a few environment variables.
+It runs with **zero configuration** (a burner wallet, local storage, no setup) and scales up to **MongoDB** plus a real chain by setting a few environment variables.
 
 ---
 
@@ -64,7 +64,7 @@ It runs with **zero configuration** (a seeded demo market, a burner wallet, loca
 - **My certificates** (`/certificates`): NFTs in your wallet and the ones you issued.
 - **Live transaction tracker**: every write shows *Sign in wallet → Broadcast → Mined in block N (gas, fee) → Recorded in MongoDB*, with the decoded call arguments.
 
-Also: real-time notifications (outbid, new bid, offer, sold, shipped, delivered), signed-message sign-in with any EIP-6963 wallet or a burner wallet, two themes (**Harvest Noir** dark and **Field Paper** light), and generative field artwork for lots without photos.
+Also: real-time notifications (outbid, new bid, offer, sold, shipped, delivered), signed-message sign-in with any EIP-6963 wallet or a burner wallet, two themes (**Harvest Noir** dark and **Field Paper** light), and real, openly licensed crop photos (Wikimedia Commons, credited on `/credits`) for lots without their own photos.
 
 ---
 
@@ -89,7 +89,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000, click **Connect wallet → Burner wallet**, and you're in a seeded market with growers, lots, three live auctions, offers and order history. Switch between **Buyer** and **Farmer** mode from the account menu.
+Open http://localhost:3000, click **Connect wallet → Burner wallet**, and you're in. The market starts empty; list a lot in farmer mode to get going (set `DEMO_SEED=true` once for a sample market). Switch between **Buyer** and **Farmer** mode from the account menu.
 
 ### Add MongoDB (recommended)
 
@@ -99,7 +99,7 @@ MONGODB_URI=mongodb://127.0.0.1:27017
 MONGODB_DB=seed2store
 ```
 
-Restart `npm run dev`. Collections and indexes are created on first start, and an empty database is seeded with the demo market.
+Restart `npm run dev`. Collections and indexes are created on first start.
 
 ### Turn on the blockchain
 
@@ -122,7 +122,7 @@ This is the exact flow shown in the video. It runs entirely locally.
 **2. List a lot.** Go to **List a lot** and fill in four steps:
 - *The crop:* title, type, variety, description.
 - *Origin & quality:* location, harvest date, grade, moisture, organic.
-- *Photos:* optional. Lots without photos get a generated field illustration.
+- *Photos:* optional, pinned to IPFS. Lots without photos show a credited, openly licensed photo of the crop.
 - *Price & quantity:* minimum, asking and buy-now price per unit.
 
 The certificate preview on the right fills in live. **Publish** seals it: the provenance fields are hashed and the lot is on the market with a serial like `S2S-8034-B37A`.
@@ -207,7 +207,7 @@ sequenceDiagram
 
 - Documents use the domain ID (UUID) as `_id`; timestamps are ISO-8601 strings.
 - Works with a local server or **MongoDB Atlas** (`mongodb+srv://…`).
-- `MONGODB_SEED=false` starts with an empty market. `npm run db:reset` drops the database (photos included) so the next start re-seeds.
+- The database starts empty (real data only). `DEMO_SEED=true` fills an empty one with a sample market; `npm run db:reset` drops the database.
 
 ---
 
@@ -289,7 +289,7 @@ Copy `.env.example` to `.env.local`. Everything is optional.
 |---|---|---|
 | `MONGODB_URI` | — | Use MongoDB (otherwise the local JSON file) |
 | `MONGODB_DB` | `seed2store` | Database name |
-| `MONGODB_SEED` | `true` | Seed an empty database with the demo market |
+| `DEMO_SEED` | `false` | Fill an empty database with a sample market (for demos and tests only) |
 | `NEXT_PUBLIC_NFT_CONTRACT` | — | Enables on-chain certificates, auctions and purchase |
 | `NEXT_PUBLIC_CHAIN_ID` | `31337` | Chain ID (Hardhat 31337, Ganache 1337, Sepolia 11155111) |
 | `NEXT_PUBLIC_RPC_URL` | `http://127.0.0.1:8545` | RPC used by the burner wallet and server reads |

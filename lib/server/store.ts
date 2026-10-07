@@ -91,8 +91,13 @@ class LocalStore implements Store {
           db = JSON.parse(await fs.readFile(DB_FILE, "utf8"))
           for (const t of TABLES) db[t] ??= [] as never
         } catch {
-          const { buildSeed } = await import("./seed")
-          db = buildSeed() as DB
+          // Starts empty: only real activity. DEMO_SEED=true opts into the sample market (tests use it).
+          if (process.env.DEMO_SEED === "true") {
+            const { buildSeed } = await import("./seed")
+            db = buildSeed() as DB
+          } else {
+            db = Object.fromEntries(TABLES.map((t) => [t, []])) as unknown as DB
+          }
           await fs.mkdir(DATA_DIR, { recursive: true })
           await fs.writeFile(DB_FILE, JSON.stringify(db, null, 2))
         }
@@ -248,7 +253,7 @@ class MongoStore implements Store {
       ...TABLES.flatMap((t) => INDEXES[t].map((spec) => db.collection(t).createIndex(spec))),
       db.collection("users").createIndex({ wallet_address: 1 }, { unique: true, name: "wallet_unique" }),
     ])
-    if (process.env.MONGODB_SEED !== "false" && (await db.collection("users").estimatedDocumentCount()) === 0) {
+    if (process.env.DEMO_SEED === "true" && (await db.collection("users").estimatedDocumentCount()) === 0) {
       const { buildSeed } = await import("./seed")
       const seed = buildSeed() as Record<TableName, Array<{ id: string }>>
       for (const t of TABLES) {

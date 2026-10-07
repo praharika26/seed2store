@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { CropArt } from "@/components/crop-art"
+import { CropPhotoImage } from "@/components/crop-art"
 
 export default function NotFound() {
   return (
@@ -17,7 +17,7 @@ export default function NotFound() {
         </div>
       </div>
       <div className="aspect-[4/3] overflow-hidden rounded-[24px] border">
-        <CropArt seed="fallow-404" cropType="barley" label="An empty field at dusk" />
+        <CropPhotoImage cropType="barley" />
       </div>
     </div>
   )

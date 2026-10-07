@@ -76,7 +76,7 @@ function Marketplace() {
               id="market-search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search basmati, Sidama, Punjab, grade A…"
+              placeholder="Search crop, variety, origin or grower…"
               className="bg-surface-2/60 placeholder:text-muted-foreground/70 focus:border-ring h-11 w-full rounded-full border pr-4 pl-11 text-[15px] outline-none transition-colors"
             />
           </div>
