@@ -26,3 +26,15 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# local runtime data (demo database, uploads, auth secret)
+/.data
+
+# hardhat
+/artifacts
+/cache
+/deployments
+
+# env
+.env
+.env.local
