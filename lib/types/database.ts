@@ -1,14 +1,23 @@
-// Database types for AgriTrust
+// Domain types for Seed2Store. Dates are ISO strings everywhere (JSON-safe on both sides).
+
+export type UserRole = "farmer" | "buyer"
 
 export interface User {
   id: string
   wallet_address: string
-  email?: string
-  role: 'farmer' | 'buyer' | 'both'
-  profile_image_url?: string
-  created_at: Date
-  updated_at: Date
+  display_name?: string | null
+  email?: string | null
+  role: UserRole
+  location?: string | null
+  bio?: string | null
+  verified?: boolean
+  created_at: string
+  updated_at: string
 }
+
+export type PublicUser = Pick<User, "id" | "wallet_address" | "display_name" | "location" | "verified" | "role">
+
+export type CropStatus = "draft" | "active" | "auction" | "sold" | "expired"
 
 export interface Crop {
   id: string
@@ -16,67 +25,58 @@ export interface Crop {
   title: string
   description: string
   crop_type: string
-  variety?: string
+  variety?: string | null
   quantity: number
   unit: string
-  harvest_date?: Date | null // Explicitly allow null for optional date fields
-  location?: string
-  latitude?: number
-  longitude?: number
+  harvest_date?: string | null
+  location?: string | null
   organic_certified: boolean
-  quality_grade?: string
-  moisture_content?: number
-  storage_conditions?: string
-  minimum_price?: number
-  starting_price?: number
-  buyout_price?: number
-  status: 'draft' | 'active' | 'auction' | 'sold' | 'expired'
-  auction_start_date?: Date | null // Explicitly allow null for optional date fields
-  auction_end_date?: Date | null // Explicitly allow null for optional date fields
-  images?: string[]
-  documents?: any[]
-  blockchain_id?: number
-  ipfs_hash?: string
-  nft_token_id?: number
-  nft_metadata_url?: string
+  quality_grade?: string | null
+  moisture_content?: number | null
+  storage_conditions?: string | null
+  minimum_price?: number | null
+  starting_price?: number | null
+  buyout_price?: number | null
+  status: CropStatus
+  images: string[]
+  content_hash?: string | null
+  metadata_uri?: string | null
+  nft_token_id?: number | null
+  nft_contract?: string | null
   nft_minted?: boolean
-  nft_transaction_hash?: string
-  created_at: Date
-  updated_at: Date
-  // Joined fields
-  farmer?: User
-  current_auction?: Auction
-  total_bids?: number
+  nft_transaction_hash?: string | null
+  created_at: string
+  updated_at: string
+  // Joined
+  farmer?: PublicUser
+  current_auction?: Auction | null
+  pending_offers?: number
 }
 
-export interface CropImage {
-  id: string
-  crop_id: string
-  image_url: string
-  pinata_hash?: string
-  is_primary: boolean
-  caption?: string
-  created_at: Date
-}
+export type AuctionStatus = "active" | "ended" | "cancelled"
 
 export interface Auction {
   id: string
   crop_id: string
   starting_price: number
-  current_highest_bid?: number
-  highest_bidder_id?: string
-  reserve_price?: number
+  reserve_price?: number | null
   bid_increment: number
-  start_time: Date
-  end_time: Date
-  status: 'upcoming' | 'active' | 'ended' | 'cancelled'
+  current_highest_bid?: number | null
+  highest_bidder_id?: string | null
+  start_time: string
+  end_time: string
+  status: AuctionStatus
   total_bids: number
-  created_at: Date
-  updated_at: Date
-  // Joined fields
+  blockchain_id?: number | null
+  transaction_hash?: string | null
+  winner_id?: string | null
+  settled_order_id?: string | null
+  chain_finalized?: boolean
+  created_at: string
+  updated_at: string
+  // Joined
   crop?: Crop
-  highest_bidder?: User
-  bids?: Bid[]
+  highest_bidder?: PublicUser | null
 }
 
 export interface Bid {
@@ -85,36 +85,15 @@ export interface Bid {
   bidder_id: string
   amount: number
   is_winning: boolean
-  bid_time: Date
-  transaction_hash?: string
-  created_at: Date
-  // Joined fields
-  bidder?: User
+  bid_time: string
+  transaction_hash?: string | null
+  created_at: string
+  // Joined
+  bidder?: PublicUser
   auction?: Auction
 }
 
-export interface Order {
-  id: string
-  crop_id: string
-  buyer_id: string
-  farmer_id: string
-  auction_id?: string
-  quantity: number
-  unit_price: number
-  total_amount: number
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
-  delivery_status: 'pending' | 'shipped' | 'delivered' | 'cancelled'
-  delivery_address?: string
-  delivery_date?: Date
-  transaction_hash?: string
-  created_at: Date
-  updated_at: Date
-  // Joined fields
-  crop?: Crop
-  buyer?: User
-  farmer?: User
-  auction?: Auction
-}
+export type OfferStatus = "pending" | "accepted" | "rejected" | "withdrawn" | "expired"
 
 export interface Offer {
   id: string
@@ -123,28 +102,42 @@ export interface Offer {
   quantity: number
   price_per_unit: number
   total_amount: number
-  message?: string
-  status: 'pending' | 'accepted' | 'rejected' | 'expired'
-  expires_at?: Date
-  created_at: Date
-  updated_at: Date
-  // Joined fields
+  message?: string | null
+  response_message?: string | null
+  status: OfferStatus
+  expires_at?: string | null
+  created_at: string
+  updated_at: string
+  // Joined
   crop?: Crop
-  buyer?: User
+  buyer?: PublicUser
 }
 
-export interface Review {
+export type OrderSource = "buy_now" | "offer" | "auction"
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded"
+export type DeliveryStatus = "pending" | "shipped" | "delivered" | "cancelled"
+
+export interface Order {
   id: string
-  order_id: string
-  reviewer_id: string
-  reviewee_id: string
-  rating: number
-  comment?: string
-  created_at: Date
-  // Joined fields
-  reviewer?: User
-  reviewee?: User
-  order?: Order
+  crop_id: string
+  buyer_id: string
+  farmer_id: string
+  auction_id?: string | null
+  offer_id?: string | null
+  source: OrderSource
+  quantity: number
+  unit_price: number
+  total_amount: number
+  payment_status: PaymentStatus
+  delivery_status: DeliveryStatus
+  delivery_address?: string | null
+  transaction_hash?: string | null
+  created_at: string
+  updated_at: string
+  // Joined
+  crop?: Crop
+  buyer?: PublicUser
+  farmer?: PublicUser
 }
 
 export interface Notification {
@@ -153,12 +146,13 @@ export interface Notification {
   type: string
   title: string
   message: string
-  data?: any
+  link?: string | null
   read: boolean
-  created_at: Date
+  created_at: string
 }
 
-// API Request/Response types
+// ---- Requests -------------------------------------------------------------
+
 export interface CreateCropRequest {
   title: string
   description: string
@@ -166,10 +160,8 @@ export interface CreateCropRequest {
   variety?: string
   quantity: number
   unit?: string
-  harvest_date?: string | null // Explicitly allow null for optional date fields
+  harvest_date?: string | null
   location?: string
-  latitude?: number
-  longitude?: number
   organic_certified?: boolean
   quality_grade?: string
   moisture_content?: number
@@ -178,10 +170,6 @@ export interface CreateCropRequest {
   starting_price?: number
   buyout_price?: number
   images?: string[]
-  documents?: any[]
-  ipfs_hash?: string
-  // Note: NFT fields removed as they're not supported in current database schema
-  // NFT creation happens on blockchain but is not stored in database
 }
 
 export interface CreateAuctionRequest {
@@ -190,12 +178,8 @@ export interface CreateAuctionRequest {
   reserve_price?: number
   bid_increment?: number
   duration_hours: number
-}
-
-export interface PlaceBidRequest {
-  auction_id: string
-  amount: number
-  transaction_hash?: string
+  blockchain_id?: number | null
+  transaction_hash?: string | null
 }
 
 export interface CreateOfferRequest {
@@ -206,22 +190,21 @@ export interface CreateOfferRequest {
   expires_in_hours?: number
 }
 
-// Filter and pagination types
 export interface CropFilters {
+  q?: string
   crop_type?: string
   location?: string
   organic_certified?: boolean
   min_price?: number
   max_price?: number
-  status?: string[]
+  status?: CropStatus[]
   farmer_id?: string
 }
 
 export interface PaginationParams {
   page?: number
   limit?: number
-  sort_by?: string
-  sort_order?: 'asc' | 'desc'
+  sort?: "newest" | "price_asc" | "price_desc" | "ending_soon"
 }
 
 export interface PaginatedResponse<T> {
@@ -234,4 +217,35 @@ export interface PaginatedResponse<T> {
     has_next: boolean
     has_prev: boolean
   }
+}
+
+export interface SeriesPoint {
+  date: string
+  value: number
+}
+
+export interface FarmerStats {
+  role: "farmer"
+  lots: { total: number; active: number; auction: number; sold: number }
+  offers: { total: number; pending: number; accepted: number }
+  auctions: { live: number; total: number }
+  revenue: { settled: number; pending: number; series: SeriesPoint[] }
+  by_crop: { crop_type: string; value: number }[]
+  orders_to_ship: number
+}
+
+export interface BuyerStats {
+  role: "buyer"
+  bids: { total: number; winning: number; won: number }
+  offers: { total: number; pending: number; accepted: number }
+  orders: { total: number; in_transit: number; delivered: number }
+  spending: { settled: number; pending: number; series: SeriesPoint[] }
+}
+
+export interface MarketStats {
+  lots: number
+  live_auctions: number
+  farmers: number
+  volume: number
+  certified: number
 }

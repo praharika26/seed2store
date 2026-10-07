@@ -84,18 +84,19 @@ export class DateValidator {
       return false;
     }
 
-    // Check if it's a valid date by parsing
-    const date = new Date(dateString);
+    // Build the date in UTC and compare UTC parts. (`new Date("YYYY-MM-DD")` is UTC midnight, so
+    // comparing local parts rejected every date for users west of Greenwich.)
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
     if (isNaN(date.getTime())) {
       return false;
     }
 
     // Ensure the parsed date matches the input (catches invalid dates like 2023-02-30)
-    const [year, month, day] = dateString.split('-').map(Number);
     return (
-      date.getFullYear() === year &&
-      date.getMonth() === month - 1 && // getMonth() is 0-indexed
-      date.getDate() === day
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 && // getUTCMonth() is 0-indexed
+      date.getUTCDate() === day
     );
   }
 

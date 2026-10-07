@@ -45,7 +45,9 @@ describe('DateValidator', () => {
   describe('isFutureDate', () => {
     it('should return true for future dates', () => {
       // Use a simple future date string
-      const futureDateString = '2025-12-31';
+      const future = new Date();
+      future.setDate(future.getDate() + 30);
+      const futureDateString = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
       
       expect(DateValidator.isFutureDate(futureDateString)).toBe(true);
     });
@@ -83,7 +85,9 @@ describe('DateValidator', () => {
 
     it('should warn about future dates but accept them', () => {
       // Use a simple future date string
-      const futureDateString = '2025-12-31';
+      const future = new Date();
+      future.setDate(future.getDate() + 30);
+      const futureDateString = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
       
       const result = DateValidator.validateHarvestDate(futureDateString);
       expect(result.isValid).toBe(true);
