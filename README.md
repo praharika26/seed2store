@@ -213,6 +213,8 @@ sequenceDiagram
 
 ## Blockchain
 
+**Live on Sepolia:** `Seed2StoreNFT` is deployed at [`0x19217F965bB80B88DBb8e66dc424414A911D19AB`](https://sepolia.etherscan.io/address/0x19217F965bB80B88DBb8e66dc424414A911D19AB) (deploy block 11,865,088), with source verified on [Sourcify](https://repo.sourcify.dev/11155111/0x19217F965bB80B88DBb8e66dc424414A911D19AB) (exact match). The first certificate NFT is [#1, Kashmiri Saffron](https://sepolia.etherscan.io/nft/0x19217F965bB80B88DBb8e66dc424414A911D19AB/1); its metadata is pinned on IPFS.
+
 **Contract:** `contracts/Seed2StoreNFT.sol` is an ERC-721 called "Seed2Store Certificate" (`S2SC`), built on OpenZeppelin 4.9.
 
 | Function | What it does |

@@ -22,6 +22,32 @@ function upsertEnv(file, entries) {
   fs.writeFileSync(file, text)
 }
 
+/** Sourcify API v2: submit the exact compiler input, then poll until the job completes. */
+async function verifyOnSourcify(chainId, address, creationTx) {
+  const buildInfo = await hre.artifacts.getBuildInfo("contracts/Seed2StoreNFT.sol:Seed2StoreNFT")
+  const res = await fetch(`https://sourcify.dev/server/v2/verify/${chainId}/${address}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "User-Agent": "seed2store-deploy/1.0" },
+    body: JSON.stringify({
+      stdJsonInput: buildInfo.input,
+      compilerVersion: buildInfo.solcLongVersion,
+      contractIdentifier: "contracts/Seed2StoreNFT.sol:Seed2StoreNFT",
+      creationTransactionHash: creationTx,
+    }),
+  })
+  const { verificationId, message } = await res.json()
+  if (!verificationId) throw new Error(message || `Sourcify returned ${res.status}`)
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 4000))
+    const job = await (await fetch(`https://sourcify.dev/server/v2/verify/${verificationId}`)).json()
+    if (job.isJobCompleted) {
+      if (job.contract?.match) return console.log(`✓ Source verified on Sourcify (${job.contract.match})`)
+      throw new Error(job.error?.message || "Sourcify could not match the bytecode")
+    }
+  }
+  throw new Error("Sourcify verification still pending; check https://sourcify.dev later")
+}
+
 async function main() {
   const [deployer] = await hre.ethers.getSigners()
   if (!deployer) throw new Error("No deployer account. Set DEPLOYER_PRIVATE_KEY in .env.local for this network.")
@@ -64,6 +90,11 @@ async function main() {
   )
 
   const isSepolia = chainId === SEPOLIA
+  // The in-process "hardhat" network vanishes when this script exits; never point the app at it.
+  if (hre.network.name === "hardhat") {
+    console.log("\nIn-process network: .env.local left untouched. Use --network localhost or --network sepolia.\n")
+    return
+  }
   const rpcUrl = hre.network.config.url || "http://127.0.0.1:8545"
   upsertEnv(path.join(__dirname, "..", ".env.local"), {
     NEXT_PUBLIC_CHAIN_ID: chainId,
@@ -78,11 +109,9 @@ async function main() {
 
   if (isSepolia) {
     console.log(`\nEtherscan: https://sepolia.etherscan.io/address/${address}`)
-    console.log("Verifying source on Sourcify/Etherscan (waiting for a few confirmations)…")
+    console.log("Verifying source on Sourcify (Etherscan shows Sourcify-verified code)…")
     try {
-      await tx.wait(5)
-      await hre.run("verify:verify", { address, constructorArguments: [] })
-      console.log("✓ Source verified")
+      await verifyOnSourcify(chainId, address, tx.hash)
     } catch (e) {
       console.log(`Verification skipped: ${e.message.split("\n")[0]}`)
     }

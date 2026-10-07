@@ -213,6 +213,21 @@ export function resolveUri(uri: string) {
   return uri
 }
 
+// IPFS content is immutable by CID, so a fetched metadata document never needs refetching.
+const metadataCache = new Map<string, unknown>()
+async function fetchMetadata(uri: string) {
+  if (metadataCache.has(uri)) return metadataCache.get(uri)
+  try {
+    const res = await withTimeout(fetch(resolveUri(uri), { headers: { accept: "application/json" } }), 8000)
+    if (!res.ok) return null
+    const json = await res.json()
+    if (uri.startsWith("ipfs://")) metadataCache.set(uri, json)
+    return json
+  } catch {
+    return null
+  }
+}
+
 export async function getTokenDetail(tokenId: number): Promise<TokenDetail | null> {
   if (!chainConfig.enabled) return null
   const c = contract()
@@ -222,11 +237,7 @@ export async function getTokenDetail(tokenId: number): Promise<TokenDetail | nul
   } catch {
     return null
   }
-  let metadata: unknown = null
-  try {
-    const res = await withTimeout(fetch(resolveUri(uri), { headers: { accept: "application/json" } }), 8000)
-    if (res.ok) metadata = await res.json()
-  } catch {}
+  const metadata = await fetchMetadata(uri)
   const history = (await listChainEvents()).filter((e) => e.tokenId === tokenId)
   return {
     tokenId,
