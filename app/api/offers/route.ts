@@ -1,76 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { OfferService, UserService } from '@/lib/services/database'
-import type { CreateOfferRequest } from '@/lib/types/database'
+import { route, body, requireUser } from "@/lib/server/http"
+import { createOffer, offersReceived, offersSent } from "@/lib/server/services"
+import type { CreateOfferRequest } from "@/lib/types/database"
 
-// GET /api/offers - Get offers for a user (farmer or buyer)
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const wallet_address = searchParams.get('wallet_address')
-    const type = searchParams.get('type') // 'received' for farmer, 'sent' for buyer
+export const dynamic = "force-dynamic"
 
-    if (!wallet_address) {
-      return NextResponse.json(
-        { error: 'Wallet address is required' },
-        { status: 400 }
-      )
-    }
+export const GET = route(async (req) => {
+  const user = await requireUser()
+  return new URL(req.url).searchParams.get("type") === "sent" ? offersSent(user) : offersReceived(user)
+})
 
-    // Find user
-    const user = await UserService.findOrCreateUser(wallet_address)
-    
-    let offers
-    if (type === 'received') {
-      // Get offers received by farmer (for their crops)
-      offers = await OfferService.getFarmerOffers(user.id)
-    } else {
-      // Get offers sent by buyer
-      offers = await OfferService.getBuyerOffers(user.id)
-    }
-    
-    return NextResponse.json(offers)
-  } catch (error) {
-    console.error('Error fetching offers:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch offers' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/offers - Create a new offer
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { wallet_address, offer_data }: { wallet_address: string; offer_data: CreateOfferRequest } = body
-
-    if (!wallet_address) {
-      return NextResponse.json(
-        { error: 'Wallet address is required' },
-        { status: 400 }
-      )
-    }
-
-    // Find user
-    const user = await UserService.findOrCreateUser(wallet_address)
-    
-    // Validate required fields
-    if (!offer_data.crop_id || !offer_data.quantity || !offer_data.price_per_unit) {
-      return NextResponse.json(
-        { error: 'Missing required fields: crop_id, quantity, price_per_unit' },
-        { status: 400 }
-      )
-    }
-
-    // Create offer
-    const offer = await OfferService.createOffer(user.id, offer_data)
-    
-    return NextResponse.json(offer, { status: 201 })
-  } catch (error) {
-    console.error('Error creating offer:', error)
-    return NextResponse.json(
-      { error: 'Failed to create offer' },
-      { status: 500 }
-    )
-  }
-}
+export const POST = route(async (req) => {
+  const user = await requireUser()
+  return Response.json(await createOffer(user, await body<CreateOfferRequest>(req)), { status: 201 })
+})

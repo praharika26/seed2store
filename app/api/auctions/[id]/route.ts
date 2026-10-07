@@ -1,28 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { AuctionService } from '@/lib/services/database'
+import { route, requireUser } from "@/lib/server/http"
+import { cancelAuction, getAuction } from "@/lib/server/services"
 
-// GET /api/auctions/[id] - Get auction by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const auction = await AuctionService.getAuctionById(id)
-    
-    if (!auction) {
-      return NextResponse.json(
-        { error: 'Auction not found' },
-        { status: 404 }
-      )
-    }
-    
-    return NextResponse.json(auction)
-  } catch (error) {
-    console.error('Error fetching auction:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch auction' },
-      { status: 500 }
-    )
-  }
-}
+type Ctx = { params: Promise<{ id: string }> }
+export const dynamic = "force-dynamic"
+
+export const GET = route<Ctx>(async (_req, { params }) => getAuction((await params).id))
+export const DELETE = route<Ctx>(async (_req, { params }) => cancelAuction(await requireUser(), (await params).id))

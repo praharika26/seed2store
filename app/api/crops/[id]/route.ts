@@ -1,28 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { CropService } from '@/lib/services/database'
+import { route, body, requireUser } from "@/lib/server/http"
+import { getCrop, setListing } from "@/lib/server/services"
 
-// GET /api/crops/[id] - Get crop by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const crop = await CropService.getCropById(id)
-    
-    if (!crop) {
-      return NextResponse.json(
-        { error: 'Crop not found' },
-        { status: 404 }
-      )
-    }
-    
-    return NextResponse.json(crop)
-  } catch (error) {
-    console.error('Error fetching crop:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch crop' },
-      { status: 500 }
-    )
-  }
-}
+type Ctx = { params: Promise<{ id: string }> }
+export const dynamic = "force-dynamic"
+
+export const GET = route<Ctx>(async (_req, { params }) => getCrop((await params).id))
+
+export const PATCH = route<Ctx>(async (req, { params }) => {
+  const user = await requireUser()
+  const { action } = await body<{ action: "delist" | "relist" }>(req)
+  return setListing(user, (await params).id, action)
+})
