@@ -1,616 +1,344 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useUser } from "@/context/user-context"
+import Link from "next/link"
+import { useMemo, useState } from "react"
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, Loader2, ScanLine } from "lucide-react"
+import { toast } from "sonner"
+import { AuthGate } from "@/components/auth-gate"
+import { Certificate } from "@/components/certificate"
+import { ImageUploader } from "@/components/image-uploader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import PinataUploader from "@/components/pinata-uploader"
-import { useRouter } from "next/navigation"
-import { CheckCircle, Loader2, Shield } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
-import { useAgriTrustNFT } from "@/lib/hooks/useAgriTrustNFT"
-import { DateField } from "@/components/ui/date-field"
-import { DateValidationResult } from "@/lib/validation/date-validator"
+import { api, errorMessage } from "@/lib/api"
+import { useWallet } from "@/lib/wallet/wallet-provider"
+import { useLotActions } from "@/lib/wallet/use-lot-actions"
+import { CROP_TYPES, GRADES, UNITS } from "@/lib/crops"
+import { chainConfig } from "@/lib/config"
+import { DateValidator } from "@/lib/validation/date-validator"
+import { formatQty, formatUSD } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import type { Crop } from "@/lib/types/database"
+
+const STEPS = ["The crop", "Origin & quality", "Photos", "Price & quantity"] as const
+
+const empty = {
+  title: "", crop_type: "", variety: "", description: "",
+  location: "", harvest_date: "", quality_grade: "", moisture_content: "", organic_certified: false, storage_conditions: "",
+  quantity: "", unit: "kg", minimum_price: "", starting_price: "", buyout_price: "",
+}
 
 export default function RegisterCropPage() {
-  const { userRole, walletAddress, isAuthenticated } = useUser()
-  const router = useRouter()
-  const { loading: nftLoading, error: nftError, createCropCertificate } = useAgriTrustNFT()
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    crop_type: "",
-    variety: "",
-    quantity: "",
-    unit: "kg",
-    harvest_date: "",
-    location: "",
-    organic_certified: false,
-    quality_grade: "",
-    moisture_content: "",
-    storage_conditions: "",
-    minimum_price: "",
-    starting_price: "",
-    buyout_price: "",
-  })
+  return (
+    <AuthGate role="farmer" reason="Connect the wallet you farm with. It becomes the owner of every certificate you register.">
+      <Register />
+    </AuthGate>
+  )
+}
+
+function Register() {
+  const { user } = useWallet()
+  const [form, setForm] = useState({ ...empty, location: user?.location ?? "" })
   const [images, setImages] = useState<string[]>([])
+  const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [step, setStep] = useState<'form' | 'minting' | 'saving' | 'complete'>('form')
-  const [dateValidation, setDateValidation] = useState<DateValidationResult>({
-    isValid: true,
-    sanitizedValue: null,
-  })
+  const [created, setCreated] = useState<Crop | null>(null)
+  const [attempted, setAttempted] = useState<boolean[]>([false, false, false, false])
+  const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) => setForm((f) => ({ ...f, [k]: v }))
 
-  // Check authentication and role
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-emerald-900 mb-4">Authentication Required</h1>
-          <p className="text-emerald-700">Please connect your wallet to register crops</p>
-        </div>
-      </div>
-    )
+  const dateCheck = form.harvest_date ? DateValidator.validateHarvestDate(form.harvest_date) : null
+  const n = (s: string) => (s === "" ? undefined : Number(s))
+
+  const errors: string[][] = useMemo(() => {
+    const e: string[][] = [[], [], [], []]
+    if (form.title.trim().length < 3) e[0].push("Give the lot a title (3+ characters).")
+    if (!form.crop_type) e[0].push("Choose a crop type.")
+    if (form.description.trim().length < 10) e[0].push("Describe the lot in at least a sentence.")
+    if (dateCheck && !dateCheck.isValid) e[1].push(dateCheck.error ?? "Invalid harvest date.")
+    const m = n(form.moisture_content)
+    if (m != null && (m < 0 || m > 100)) e[1].push("Moisture is a percentage between 0 and 100.")
+    const q = n(form.quantity), min = n(form.minimum_price), start = n(form.starting_price), buy = n(form.buyout_price)
+    if (!q || q <= 0) e[3].push("Enter the quantity you're selling.")
+    if (!min || min <= 0) e[3].push("Set a minimum price per unit.")
+    if (start != null && min != null && start < min) e[3].push("Asking price can't be below your minimum.")
+    if (buy != null && (start ?? min ?? 0) > buy) e[3].push("Buy-now price should be at or above your asking price.")
+    return e
+  }, [form, dateCheck])
+
+  const preview = {
+    title: form.title || "Your lot title",
+    crop_type: form.crop_type || "other",
+    variety: form.variety || null,
+    quantity: Number(form.quantity) || 0,
+    unit: form.unit,
+    location: form.location || null,
+    harvest_date: dateCheck?.isValid ? dateCheck.sanitizedValue : null,
+    quality_grade: form.quality_grade || null,
+    organic_certified: form.organic_certified,
+    content_hash: null,
+    nft_minted: false,
+    nft_token_id: null,
+    created_at: new Date().toISOString(),
   }
 
-  if (userRole !== "farmer") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-emerald-900 mb-4">Access Denied</h1>
-          <p className="text-emerald-700 mb-4">Only farmers can register crops</p>
-          <Button onClick={() => router.push("/switch-role")} className="bg-emerald-600 hover:bg-emerald-700">
-            Switch to Farmer Role
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const handleImageUpload = (_ipfsHash: string, ipfsUrl: string) => {
-    setImages(prev => [...prev, ipfsUrl])
-    toast({
-      title: "Image uploaded successfully",
-      description: "Your crop image has been uploaded to IPFS",
-    })
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? (value ? parseFloat(value) : '') : value
-    }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData(prev => ({ ...prev, organic_certified: checked }))
-  }
-
-  const handleDateChange = (value: string) => {
-    setFormData(prev => ({ ...prev, harvest_date: value }))
-  }
-
-  const handleDateValidation = (result: DateValidationResult) => {
-    setDateValidation(result)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (images.length === 0) {
-      toast({
-        title: "Image required",
-        description: "Please upload at least one image of your crop",
-        variant: "destructive",
-      })
+  const submit = async () => {
+    const firstBad = errors.findIndex((e) => e.length)
+    if (firstBad !== -1) {
+      setStep(firstBad)
+      toast.error(errors[firstBad][0])
       return
     }
-
-    if (!walletAddress) {
-      toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet to register crops",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Check date validation before submission
-    if (!dateValidation.isValid) {
-      toast({
-        title: "Invalid date",
-        description: dateValidation.error || "Please fix the harvest date before submitting",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Debug: Check form data before submission
-    // Additional frontend validation
-    if (!formData.title.trim()) {
-      toast({
-        title: "Title required",
-        description: "Please enter a crop title",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.description.trim()) {
-      toast({
-        title: "Description required", 
-        description: "Please enter a crop description",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.crop_type) {
-      toast({
-        title: "Crop type required",
-        description: "Please select a crop type",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      toast({
-        title: "Quantity required",
-        description: "Please enter a valid quantity",
-        variant: "destructive",
-      })
-      return
-    }
-
-    console.log('=== Form Debug Info ===');
-    console.log('Form data:', formData);
-    console.log('Date validation:', dateValidation);
-    console.log('Images:', images);
-    console.log('Wallet address:', walletAddress);
-    console.log('======================');
-
     setSubmitting(true)
-    
     try {
-      // Step 1: Try to create NFT first (with fallback)
-      let nftResult = null;
-      let nftError = null;
-
-      try {
-        setStep('minting')
-        toast({
-          title: "Creating NFT...",
-          description: "Minting your crop certificate on the blockchain",
-        })
-
-        // Convert harvest date to Unix timestamp for NFT (0 if null/empty)
-        const harvestTimestamp = dateValidation.sanitizedValue 
-          ? Math.floor(new Date(dateValidation.sanitizedValue).getTime() / 1000)
-          : 0;
-
-        // Prepare NFT creation parameters
-        const nftParams = {
-          title: formData.title,
-          description: formData.description,
-          cropType: formData.crop_type,
-          variety: formData.variety || "",
-          quantity: parseFloat(formData.quantity),
-          unit: formData.unit,
-          location: formData.location || "",
-          isOrganic: formData.organic_certified,
-          qualityGrade: formData.quality_grade || "",
-          harvestDate: harvestTimestamp,
-          minimumPrice: formData.minimum_price ? parseFloat(formData.minimum_price) : 0,
-          buyoutPrice: formData.buyout_price ? parseFloat(formData.buyout_price) : 0,
-          ipfsMetadata: JSON.stringify({
-            images,
-            moisture_content: formData.moisture_content,
-            storage_conditions: formData.storage_conditions,
-            starting_price: formData.starting_price
-          })
-        }
-
-        console.log('Creating NFT with params:', nftParams)
-        nftResult = await createCropCertificate(nftParams)
-        
-        if (nftResult && nftResult.success) {
-          console.log('NFT created successfully:', nftResult)
-        } else {
-          throw new Error("NFT creation returned unsuccessful result")
-        }
-      } catch (nftErr) {
-        console.warn('NFT creation failed, proceeding without NFT:', nftErr)
-        nftError = nftErr instanceof Error ? nftErr.message : 'NFT creation failed'
-        
-        // Show warning but continue
-        toast({
-          title: "NFT creation failed",
-          description: "Continuing with database registration...",
-          variant: "destructive",
-        })
-      }
-
-      // Step 2: Save to database (with or without NFT information)
-      setStep('saving')
-      toast({
-        title: "Saving to database...",
-        description: "Registering your crop in the marketplace",
-      })
-
-      const cropData = {
-        ...formData,
-        harvest_date: dateValidation.sanitizedValue, // Use sanitized date value
-        quantity: parseFloat(formData.quantity),
-        minimum_price: formData.minimum_price ? parseFloat(formData.minimum_price) : undefined,
-        starting_price: formData.starting_price ? parseFloat(formData.starting_price) : undefined,
-        buyout_price: formData.buyout_price ? parseFloat(formData.buyout_price) : undefined,
-        moisture_content: formData.moisture_content ? parseFloat(formData.moisture_content) : undefined,
-        images
-        // Note: NFT information is not stored in database due to schema limitations
-        // NFT is created on blockchain and can be queried using the transaction hash
-        // Transaction hash: nftResult?.transactionHash (if NFT creation succeeded)
-      }
-
-      const response = await fetch("/api/crops", {
+      const crop = await api<Crop>("/api/crops", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet_address: walletAddress,
-          crop_data: cropData,
-        }),
+        json: {
+          ...form,
+          harvest_date: dateCheck?.sanitizedValue ?? null,
+          quantity: n(form.quantity),
+          minimum_price: n(form.minimum_price),
+          starting_price: n(form.starting_price),
+          buyout_price: n(form.buyout_price),
+          moisture_content: n(form.moisture_content),
+          quality_grade: form.quality_grade || undefined,
+          images,
+        },
       })
-
-      if (response.ok) {
-        await response.json()
-        setStep('complete')
-        setSuccess(true)
-        
-        // Show appropriate success message based on NFT creation
-        if (nftResult && nftResult.success) {
-          toast({
-            title: "Crop registered with NFT!",
-            description: `Your crop has been registered in the marketplace and an NFT certificate has been minted on the blockchain. Transaction: ${nftResult.transactionHash?.slice(0, 10)}...`,
-          })
-        } else {
-          toast({
-            title: "Crop registered successfully!",
-            description: nftError 
-              ? `Your crop has been registered in the marketplace. NFT creation failed: ${nftError}`
-              : "Your crop has been registered in the marketplace.",
-          })
-        }
-        setTimeout(() => router.push("/my-crops"), 3000)
-      } else {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to register crop in database")
-      }
-    } catch (error) {
-      console.error("Error registering crop:", error)
-      toast({
-        title: "Registration failed",
-        description: error instanceof Error ? error.message : "Failed to register crop",
-        variant: "destructive",
-      })
-      setStep('form')
+      setCreated(crop)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    } catch (e) {
+      toast.error(errorMessage(e))
     } finally {
       setSubmitting(false)
     }
   }
 
+  if (created) return <Registered crop={created} onMinted={setCreated} />
+
+  const last = step === STEPS.length - 1
   return (
-    <main className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-emerald-900 mb-8">Register Your Crop</h1>
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+        <div>
+          <h1 className="font-display text-[2.6rem] leading-[1.02] sm:text-[3.4rem]">
+            List a <span className="italic">lot</span>
+          </h1>
+          <p className="text-muted-foreground mt-3 max-w-lg leading-relaxed">
+            Fill in what a buyer would ask you on the phone. Provenance fields are fingerprinted when you publish, so get them right; they can&apos;t be edited later.
+          </p>
 
-        {success ? (
-          <div className="bg-white rounded-xl shadow-lg p-8 border border-emerald-200 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <CheckCircle className="w-16 h-16 text-emerald-600" />
-                <Shield className="w-6 h-6 text-blue-600 absolute -top-1 -right-1 bg-white rounded-full" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-emerald-900 mb-2">Crop Registered Successfully!</h2>
-            <p className="text-emerald-700 mb-4">
-              Your crop has been registered in the marketplace.
-            </p>
-            <div className="bg-emerald-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-center gap-2 text-emerald-800">
-                <Shield className="w-5 h-5" />
-                <span className="font-medium">Registration Complete</span>
-              </div>
-              <p className="text-sm text-emerald-600 mt-1">
-                Your crop information has been saved and buyers can now view it
-              </p>
-            </div>
-            <p className="text-emerald-700">Redirecting to your crops...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 border border-emerald-200 space-y-8">
-            {/* Images Section */}
-            <div className="space-y-4">
-              <Label className="text-lg font-semibold text-emerald-900">Crop Images</Label>
-              <PinataUploader onUploadComplete={handleImageUpload} />
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img 
-                        src={image} 
-                        alt={`Crop ${index + 1}`} 
-                        className="w-full h-24 object-cover rounded-lg border border-emerald-200"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <ol className="mt-10 flex gap-2" aria-label="Steps">
+            {STEPS.map((s, i) => (
+              <li key={s} className="flex-1">
+                <button type="button" onClick={() => setStep(i)} className="group w-full text-left" aria-current={i === step ? "step" : undefined} aria-label={`Step ${i + 1}: ${s}`}>
+                  <span className={cn("block h-1 rounded-full transition-colors", i < step ? "bg-signal" : i === step ? "bg-foreground" : "bg-border-strong")} />
+                  <span className={cn("mt-2 hidden items-center gap-1.5 text-xs sm:flex", i === step ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>
+                    {errors[i].length > 0 && i < step && <span className="bg-live size-1.5 rounded-full" aria-label="Needs attention" />}
+                    {s}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
 
-            {/* Basic Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-emerald-900">Basic Information</h3>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Crop Title *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Premium Organic Wheat"
-                    required
-                  />
+          <form
+            className="mt-8 flex flex-col gap-6"
+            onSubmit={(e) => {
+              e.preventDefault()
+              setAttempted((a) => a.map((v, i) => (i === step ? true : v)))
+              if (last) submit()
+              else if (!errors[step].length) setStep(step + 1)
+            }}
+          >
+            {step === 0 && (
+              <>
+                <Field label="Lot title" htmlFor="title" hint="What a buyer would search for: crop, variety, standout quality.">
+                  <Input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Sharbati Wheat, Golden Lot" maxLength={120} autoFocus />
+                </Field>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Field label="Crop type" htmlFor="crop_type">
+                    <Select value={form.crop_type} onValueChange={(v) => set("crop_type", v)}>
+                      <SelectTrigger id="crop_type" className="w-full"><SelectValue placeholder="Choose…" /></SelectTrigger>
+                      <SelectContent>{CROP_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Variety" htmlFor="variety" optional>
+                    <Input id="variety" value={form.variety} onChange={(e) => set("variety", e.target.value)} placeholder="e.g. Pusa 1121" />
+                  </Field>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="crop_type">Crop Type *</Label>
-                  <Select value={formData.crop_type} onValueChange={(value) => handleSelectChange('crop_type', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select crop type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="wheat">Wheat</SelectItem>
-                      <SelectItem value="rice">Rice</SelectItem>
-                      <SelectItem value="corn">Corn</SelectItem>
-                      <SelectItem value="barley">Barley</SelectItem>
-                      <SelectItem value="soybean">Soybean</SelectItem>
-                      <SelectItem value="cotton">Cotton</SelectItem>
-                      <SelectItem value="tomato">Tomato</SelectItem>
-                      <SelectItem value="potato">Potato</SelectItem>
-                      <SelectItem value="onion">Onion</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="variety">Variety</Label>
-                  <Input
-                    id="variety"
-                    name="variety"
-                    value={formData.variety}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Hard Red Winter"
-                  />
-                </div>
-                
-                <DateField
-                  id="harvest_date"
-                  name="harvest_date"
-                  label="Harvest Date"
-                  value={formData.harvest_date}
-                  onChange={handleDateChange}
-                  onValidation={handleDateValidation}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe your crop, growing practices, certifications, quality, etc."
-                  rows={4}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Quantity and Location */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-emerald-900">Quantity & Location</h3>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    name="quantity"
-                    type="number"
-                    step="0.01"
-                    value={formData.quantity}
-                    onChange={handleInputChange}
-                    placeholder="1000"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select value={formData.unit} onValueChange={(value) => handleSelectChange('unit', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kg">Kilogram (kg)</SelectItem>
-                      <SelectItem value="ton">Ton</SelectItem>
-                      <SelectItem value="quintal">Quintal</SelectItem>
-                      <SelectItem value="liter">Liter</SelectItem>
-                      <SelectItem value="piece">Piece</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Punjab, India"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Quality Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-emerald-900">Quality Information</h3>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="quality_grade">Quality Grade</Label>
-                  <Select value={formData.quality_grade} onValueChange={(value) => handleSelectChange('quality_grade', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">Grade A (Premium)</SelectItem>
-                      <SelectItem value="B">Grade B (Good)</SelectItem>
-                      <SelectItem value="C">Grade C (Standard)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="moisture_content">Moisture Content (%)</Label>
-                  <Input
-                    id="moisture_content"
-                    name="moisture_content"
-                    type="number"
-                    step="0.1"
-                    value={formData.moisture_content}
-                    onChange={handleInputChange}
-                    placeholder="12.5"
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2 pt-8">
-                  <Checkbox
-                    id="organic_certified"
-                    checked={formData.organic_certified}
-                    onCheckedChange={handleCheckboxChange}
-                  />
-                  <Label htmlFor="organic_certified">Organic Certified</Label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="storage_conditions">Storage Conditions</Label>
-                <Textarea
-                  id="storage_conditions"
-                  name="storage_conditions"
-                  value={formData.storage_conditions}
-                  onChange={handleInputChange}
-                  placeholder="Describe storage conditions, temperature, humidity, etc."
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-emerald-900">Pricing (USD per unit)</h3>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="minimum_price">Minimum Price</Label>
-                  <Input
-                    id="minimum_price"
-                    name="minimum_price"
-                    type="number"
-                    step="0.01"
-                    value={formData.minimum_price}
-                    onChange={handleInputChange}
-                    placeholder="45.00"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="starting_price">Starting Price</Label>
-                  <Input
-                    id="starting_price"
-                    name="starting_price"
-                    type="number"
-                    step="0.01"
-                    value={formData.starting_price}
-                    onChange={handleInputChange}
-                    placeholder="50.00"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="buyout_price">Buyout Price (Optional)</Label>
-                  <Input
-                    id="buyout_price"
-                    name="buyout_price"
-                    type="number"
-                    step="0.01"
-                    value={formData.buyout_price}
-                    onChange={handleInputChange}
-                    placeholder="65.00"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={submitting || images.length === 0 || nftLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  {step === 'minting' && "Creating NFT..."}
-                  {step === 'saving' && "Saving to database..."}
-                  {step === 'complete' && "Complete!"}
-                </>
-              ) : (
-                <>
-                  <Shield className="w-5 h-5 mr-2" />
-                  Create Crop Certificate
-                </>
-              )}
-            </Button>
-            
-            {nftError && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 text-sm">{nftError}</p>
-              </div>
+                <Field label="Description" htmlFor="description" hint="Growing practice, processing, taste or test results, what it's best for.">
+                  <Textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={5} maxLength={4000} />
+                </Field>
+              </>
             )}
+
+            {step === 1 && (
+              <>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Field label="Origin" htmlFor="location" hint="Village, district, region.">
+                    <Input id="location" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. Ludhiana, Punjab" />
+                  </Field>
+                  <Field label="Harvest date" htmlFor="harvest_date" optional error={dateCheck && !dateCheck.isValid ? dateCheck.error : undefined} hint={dateCheck?.warning}>
+                    <Input id="harvest_date" type="date" value={form.harvest_date} onChange={(e) => set("harvest_date", e.target.value)} />
+                  </Field>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Field label="Quality grade" htmlFor="grade" optional>
+                    <Select value={form.quality_grade} onValueChange={(v) => set("quality_grade", v)}>
+                      <SelectTrigger id="grade" className="w-full"><SelectValue placeholder="Ungraded" /></SelectTrigger>
+                      <SelectContent>{GRADES.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Moisture content (%)" htmlFor="moisture" optional>
+                    <Input id="moisture" type="number" inputMode="decimal" step="0.1" value={form.moisture_content} onChange={(e) => set("moisture_content", e.target.value)} placeholder="e.g. 11.5" />
+                  </Field>
+                </div>
+                <label htmlFor="organic" className="bg-surface-2/50 flex cursor-pointer items-center justify-between gap-4 rounded-2xl border p-4">
+                  <span>
+                    <span className="block font-medium">Certified organic</span>
+                    <span className="text-muted-foreground text-sm">Only if you hold a current certification.</span>
+                  </span>
+                  <Switch id="organic" checked={form.organic_certified} onCheckedChange={(v) => set("organic_certified", v)} />
+                </label>
+                <Field label="Storage conditions" htmlFor="storage" optional>
+                  <Textarea id="storage" value={form.storage_conditions} onChange={(e) => set("storage_conditions", e.target.value)} rows={2} placeholder="Silo bags at 18–22 °C, fumigation-free…" />
+                </Field>
+              </>
+            )}
+
+            {step === 2 && (
+              <Field label="Photos" hint="The first photo is the cover. Lots without photos get a generated field illustration.">
+                <ImageUploader value={images} onChange={setImages} />
+              </Field>
+            )}
+
+            {step === 3 && (
+              <>
+                <div className="grid gap-6 sm:grid-cols-[1fr_200px]">
+                  <Field label="Quantity for sale" htmlFor="quantity">
+                    <Input id="quantity" type="number" inputMode="decimal" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="e.g. 18" className="tabular" />
+                  </Field>
+                  <Field label="Unit" htmlFor="unit">
+                    <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+                      <SelectTrigger id="unit" className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>{UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-3">
+                  <Field label={`Minimum / ${form.unit}`} htmlFor="min" hint="Floor for offers and auctions.">
+                    <MoneyInput id="min" value={form.minimum_price} onChange={(v) => set("minimum_price", v)} />
+                  </Field>
+                  <Field label={`Asking / ${form.unit}`} htmlFor="start" optional hint="Defaults to the minimum.">
+                    <MoneyInput id="start" value={form.starting_price} onChange={(v) => set("starting_price", v)} />
+                  </Field>
+                  <Field label={`Buy now / ${form.unit}`} htmlFor="buy" optional hint="Leave blank for offers only.">
+                    <MoneyInput id="buy" value={form.buyout_price} onChange={(v) => set("buyout_price", v)} />
+                  </Field>
+                </div>
+                {Number(form.quantity) > 0 && Number(form.buyout_price || form.starting_price || form.minimum_price) > 0 && (
+                  <div className="bg-surface-2/50 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4">
+                    <span className="text-muted-foreground text-sm">Whole lot at {form.buyout_price ? "buy-now" : "asking"} price</span>
+                    <span className="tabular text-xl font-medium">{formatUSD(Number(form.quantity) * Number(form.buyout_price || form.starting_price || form.minimum_price))}</span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {attempted[step] && errors[step].length > 0 && <p className="text-live text-sm" role="alert">{errors[step].join(" ")}</p>}
+
+            <div className="mt-2 flex items-center justify-between border-t pt-6">
+              <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={step === 0}>
+                <ArrowLeft /> Back
+              </Button>
+              {last ? (
+                <Button type="submit" size="lg" disabled={submitting}>
+                  {submitting ? <Loader2 className="animate-spin" /> : <Check />} Publish lot
+                </Button>
+              ) : (
+                <Button type="submit" size="lg">
+                  Continue <ArrowRight />
+                </Button>
+              )}
+            </div>
           </form>
-        )}
+        </div>
+
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <p className="text-muted-foreground mb-3 text-xs">Live preview</p>
+          <Certificate crop={preview} farmer={user ? { ...user, verified: user.verified } : null} />
+          <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
+            On publish, these fields are fingerprinted with keccak-256 and shown to buyers alongside a verification link.
+            {chainConfig.enabled ? ` You can then mint the certificate on ${chainConfig.name}.` : ""}
+          </p>
+        </aside>
       </div>
-    </main>
+    </div>
+  )
+}
+
+function Field({ label, htmlFor, hint, error, optional, children }: { label: string; htmlFor?: string; hint?: string | null; error?: string; optional?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={htmlFor} className="text-[13.5px]">
+        {label} {optional && <span className="text-muted-foreground font-normal">optional</span>}
+      </Label>
+      {children}
+      {error ? <p className="text-destructive text-xs">{error}</p> : hint ? <p className="text-muted-foreground text-xs leading-relaxed">{hint}</p> : null}
+    </div>
+  )
+}
+
+function MoneyInput({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative">
+      <span className="text-muted-foreground absolute top-1/2 left-3.5 -translate-y-1/2">$</span>
+      <Input id={id} type="number" inputMode="decimal" step="0.01" min="0" value={value} onChange={(e) => onChange(e.target.value)} className="tabular pl-7" />
+    </div>
+  )
+}
+
+function Registered({ crop, onMinted }: { crop: Crop; onMinted: (c: Crop) => void }) {
+  const { user } = useWallet()
+  const { mint, busy } = useLotActions()
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
+      <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
+        <div>
+          <div className="bg-signal-soft text-signal mb-6 grid size-14 place-items-center rounded-2xl border border-signal/20">
+            <Check className="size-7" />
+          </div>
+          <h1 className="font-display text-[2.8rem] leading-[1.02] sm:text-6xl">
+            Your lot is <span className="italic">live.</span>
+          </h1>
+          <p className="text-muted-foreground mt-4 leading-relaxed">
+            {formatQty(crop.quantity)} {crop.unit} of {crop.title} is on the market with certificate fingerprint{" "}
+            <span className="text-foreground font-mono text-sm">{crop.content_hash?.slice(0, 12)}…</span>
+          </p>
+
+          {chainConfig.enabled && !crop.nft_minted && (
+            <div className="bg-gold-soft mt-8 rounded-2xl border border-gold/25 p-5">
+              <p className="flex items-center gap-2 font-medium"><ScanLine className="text-gold size-5" /> Certify on {chainConfig.name}</p>
+              <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">Minting lets buyers verify your certificate on-chain and pay through contract escrow. Recommended.</p>
+              <Button variant="gold" className="mt-4" disabled={busy === "mint"} onClick={async () => { const c = await mint(crop); if (c) onMinted(c) }}>
+                {busy === "mint" ? <Loader2 className="animate-spin" /> : <BadgeCheck />} Mint certificate
+              </Button>
+            </div>
+          )}
+          {crop.nft_minted && (
+            <p className="text-signal mt-6 flex items-center gap-2 text-sm"><BadgeCheck className="size-4" /> Minted on-chain as token #{crop.nft_token_id}</p>
+          )}
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button asChild size="lg"><Link href={`/crop/${crop.id}`}>Open the lot <ArrowRight /></Link></Button>
+            <Button asChild size="lg" variant="outline"><Link href="/my-crops">All my lots</Link></Button>
+          </div>
+        </div>
+        <Certificate crop={crop} farmer={user} animate />
+      </div>
+    </div>
   )
 }
