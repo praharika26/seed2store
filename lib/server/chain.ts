@@ -104,7 +104,9 @@ export async function listChainEvents(): Promise<ChainEvent[]> {
   const latest = await withTimeout(p.getBlockNumber())
   const logs: Log[] = []
   for (let from = chainConfig.deployBlock; from <= latest; from += LOG_CHUNK) {
-    const to = Math.min(latest, from + LOG_CHUNK - 1)
+    // Load-balanced RPCs can answer getLogs from a node a block behind getBlockNumber's, so the
+    // final chunk asks for "latest" (that node's own head) instead of a number it may not have yet.
+    const to = from + LOG_CHUNK - 1 >= latest ? "latest" : from + LOG_CHUNK - 1
     logs.push(...(await withTimeout(p.getLogs({ address: chainConfig.nftContract, fromBlock: from, toBlock: to }), 20_000)))
   }
   const events = logs.map(decodeLog).filter(Boolean) as ChainEvent[]

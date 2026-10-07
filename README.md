@@ -5,9 +5,9 @@
 **Certified crops, traded direct.**<br/>
 A marketplace where growers list harvest lots with a tamper-evident certificate of origin and sell straight to buyers through buy-now, private offers or open auctions, settled on-chain when you want it.
 
-<a href="docs/media/seed2store-walkthrough.mp4"><img src="docs/media/seed2store-walkthrough-poster.jpg" alt="Watch the 75-second walkthrough" width="860"/></a>
+<img src="docs/media/screens/01-landing.jpg" alt="Seed2Store landing page" width="860"/>
 
-▶ **[Watch the 75-second walkthrough](docs/media/seed2store-walkthrough.mp4)** · 📘 **[Read the full guide (PDF)](docs/Seed2Store-Guide.pdf)**
+📘 **[Read the full guide (PDF)](docs/Seed2Store-Guide.pdf)** · ▶ [Walkthrough video (earlier build)](docs/media/seed2store-walkthrough.mp4)
 
 </div>
 
@@ -70,8 +70,22 @@ Also: real-time notifications (outbid, new bid, offer, sold, shipped, delivered)
 
 ## Screens
 
+All captured from the live app: Sepolia + MongoDB Atlas + Pinata, real transactions, no seeded data.
+
 | | |
 |---|---|
+| ![Landing](docs/media/screens/01-landing.jpg) **Landing.** Live lots and a real certificate card. | ![List a lot](docs/media/screens/02-wizard-crop.jpg) **List a lot.** The certificate fills in as you type. |
+| ![Price it](docs/media/screens/04-wizard-price.jpg) **Price it.** Floor, asking and buy-now price, in USD. | ![Published](docs/media/screens/05-lot-live.jpg) **Published.** Fingerprinted (keccak-256) and pinned to IPFS via Pinata. |
+| ![Mint the NFT](docs/media/screens/06-mint-tracker.jpg) **Mint the NFT.** `createCropCertificate()` signed, broadcast, mined on Sepolia, then recorded in MongoDB. | ![Minted](docs/media/screens/07-lot-minted.jpg) **Minted.** The lot now carries ERC-721 certificate #4. |
+| ![On-chain activity](docs/media/screens/08-lot-chain-activity.jpg) **On-chain activity.** Every event for this lot, linked to its transaction and Etherscan. | ![The market](docs/media/screens/09-market.jpg) **The market.** Certified lots with real, openly licensed photos. |
+| ![Auction / bidding](docs/media/screens/11-auction-leading.jpg) **Auction / bidding.** An on-chain auction (NFT #2) with a live bid. | ![Buy crops](docs/media/screens/12-buy-dialog.jpg) **Buy crops.** Buy now settles on-chain with `directPurchase()`. |
+| ![Purchase mined](docs/media/screens/12b-buy-tracker.jpg) **Purchase mined.** Block, gas and fee shown; the NFT moves to the buyer. | ![Orders](docs/media/screens/13-buyer-orders.jpg) **Orders.** Paid on-chain, then shipping, then delivery. |
+| ![My certificates](docs/media/screens/21-certificates.jpg) **My certificates.** NFTs in the buyer's MetaMask / burner wallet. | ![Grower sales](docs/media/screens/14-grower-sales.jpg) **Grower sales.** Each sale links its transaction. |
+| ![Grower dashboard](docs/media/screens/15-grower-dashboard.jpg) **Grower dashboard.** Revenue, tasks and activity. | ![Verify](docs/media/screens/17-verify.jpg) **Verify.** Record intact; on-chain certificate matches. |
+| ![On-chain ledger](docs/media/screens/18-ledger.jpg) **On-chain ledger.** Every mint, auction, bid, sale and transfer the contract emitted. | ![Transaction details](docs/media/screens/19-transaction.jpg) **Transaction details.** Decoded input, gas, fee and emitted events. |
+| ![NFT token page](docs/media/screens/20-nft-token.jpg) **NFT token page.** Owner, issuer, tokenURI and full ownership history. |  |
+
+---|---|
 | ![Landing](docs/media/screens/01-landing.jpg) **Landing.** Live auctions and a real certificate. | ![Listing wizard](docs/media/screens/02-wizard-crop.jpg) **List a lot.** The certificate fills in as you type. |
 | ![Lot live](docs/media/screens/05-lot-live.jpg) **Published.** Fingerprinted and sealed, ready to mint. | ![Minted](docs/media/screens/07-lot-minted.jpg) **Minted.** The lot is certified on-chain. |
 | ![Market](docs/media/screens/09-market.jpg) **The market.** Certified lots with origin, grade and price. | ![Live bid](docs/media/screens/11-auction-leading.jpg) **Live auction.** Anti-sniping bids. |
