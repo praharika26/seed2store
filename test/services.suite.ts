@@ -102,6 +102,8 @@ describe("buy now + order lifecycle", () => {
 
     const stats = await svc.farmerStats(farmer)
     expect(stats.revenue.settled).toBe(3500)
+    // Today's settled sale must land in the chart's final bucket, in any timezone.
+    expect(stats.revenue.series.at(-1)?.value).toBe(3500)
   })
 
   it("cancelling an unpaid order returns the lot to market", async () => {

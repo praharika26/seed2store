@@ -739,13 +739,11 @@ export async function updateOrder(user: User, orderId: string, action: OrderActi
 // ---------------------------------------------------------------------------
 
 function dailySeries(rows: { created_at: string; total_amount: number }[], days = 30): SeriesPoint[] {
+  // Bucket by UTC calendar day, the same basis as the ISO timestamps being summed. (Local midnight
+  // here pushed today's sales outside the window for any timezone east of UTC.)
   const out: SeriesPoint[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today.getTime() - i * 24 * HOUR)
-    const key = d.toISOString().slice(0, 10)
-    out.push({ date: key, value: 0 })
+    out.push({ date: new Date(Date.now() - i * 24 * HOUR).toISOString().slice(0, 10), value: 0 })
   }
   let running = 0
   const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))
