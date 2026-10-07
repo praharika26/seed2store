@@ -9,11 +9,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
- * @title AgriTrustNFT
+ * @title Seed2StoreNFT
  * @dev ERC721 NFT contract for verifiable crop certificates
  * Each crop registration creates a unique NFT with authenticity proof
  */
-contract AgriTrustNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, ReentrancyGuard {
+contract Seed2StoreNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
     
     Counters.Counter private _tokenIds;
@@ -85,7 +85,7 @@ contract AgriTrustNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, Reen
     event DirectPurchase(uint256 indexed tokenId, address indexed buyer, uint256 amount);
     event CropSold(uint256 indexed tokenId, address indexed buyer, uint256 amount);
     
-    constructor() ERC721("AgriTrust Crop Certificate", "ATCC") {}
+    constructor() ERC721("Seed2Store Certificate", "S2SC") {}
     
     /**
      * @dev Create a verifiable crop certificate (NFT)
@@ -163,8 +163,8 @@ contract AgriTrustNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, Reen
         require(cropCertificates[_tokenId].isActive, "Crop is not active");
         require(!cropCertificates[_tokenId].isSold, "Crop already sold");
         require(_startingPrice >= cropCertificates[_tokenId].minimumPrice, "Starting price below minimum");
-        require(_duration >= 1 hours && _duration <= 7 days, "Invalid auction duration");
         require(tokenToAuction[_tokenId] == 0, "Auction already exists for this NFT");
+        require(_duration >= 1 hours && _duration <= 30 days, "Invalid auction duration");
         
         _auctionIds.increment();
         uint256 newAuctionId = _auctionIds.current();
@@ -259,10 +259,11 @@ contract AgriTrustNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, Reen
             emit AuctionFinalized(_auctionId, auction.currentBidder, auction.currentBid);
             emit CropSold(auction.tokenId, auction.currentBidder, auction.currentBid);
         } else {
-            // Failed auction - refund highest bidder
+            // Failed auction - refund highest bidder and free the lot so it can be relisted
             if (auction.currentBidder != address(0)) {
                 payable(auction.currentBidder).transfer(auction.currentBid);
             }
+            tokenToAuction[auction.tokenId] = 0;
             emit AuctionFinalized(_auctionId, address(0), 0);
         }
     }
@@ -277,6 +278,7 @@ contract AgriTrustNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable, Reen
         require(crop.buyoutPrice > 0, "Direct purchase not available");
         require(msg.sender != crop.farmer, "Farmer cannot buy own crop");
         require(ownerOf(_tokenId) == crop.farmer, "Farmer no longer owns NFT");
+        require(tokenToAuction[_tokenId] == 0, "Crop is in an active auction");
         
         uint256 totalCost = crop.buyoutPrice;
         require(msg.value >= totalCost, "Insufficient payment");
