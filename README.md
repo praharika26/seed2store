@@ -7,7 +7,7 @@ A marketplace where growers list harvest lots with a tamper-evident certificate 
 
 <img src="docs/media/screens/01-landing.jpg" alt="Seed2Store landing page" width="860"/>
 
-📘 **[Read the full guide (PDF)](docs/Seed2Store-Guide.pdf)** · ▶ [Walkthrough video (earlier build)](docs/media/seed2store-walkthrough.mp4)
+📘 **[Read the full guide (PDF)](docs/Seed2Store-Guide.pdf)** · ▶ **[Watch the live demo (4 min, real Sepolia transactions)](docs/media/seed2store-demo.mp4)**
 
 </div>
 
