@@ -1,8 +1,8 @@
 import { ETH_USD } from "@/lib/config"
 
-const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
-const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 })
+const usd0 = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
+const usd2 = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const compact = new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 })
 const qty = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 })
 
 export function formatUSD(value?: number | null, opts: { cents?: boolean } = {}) {
@@ -13,7 +13,7 @@ export function formatUSD(value?: number | null, opts: { cents?: boolean } = {})
 }
 
 export function formatCompactUSD(value: number) {
-  return `$${compact.format(value)}`
+  return `₹${compact.format(value)}`
 }
 
 export function formatQty(value?: number | null) {

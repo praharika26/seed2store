@@ -129,7 +129,7 @@ describe("auctions", () => {
     await expect(svc.placeBid(farmer, auction.id, { amount: 3200 })).rejects.toThrow(/own lot/)
     await expect(svc.placeBid(alice, auction.id, { amount: 3000 })).rejects.toThrow(/at least/)
     await svc.placeBid(alice, auction.id, { amount: 3100 })
-    await expect(svc.placeBid(bob, auction.id, { amount: 3120 })).rejects.toThrow(/at least \$3,150/)
+    await expect(svc.placeBid(bob, auction.id, { amount: 3120 })).rejects.toThrow(/at least ₹3,150/)
     await svc.placeBid(bob, auction.id, { amount: 3150 })
     expect((await svc.listNotifications(alice))[0].title).toBe("You've been outbid")
     await expect(svc.cancelAuction(farmer, auction.id)).rejects.toThrow(/with bids/)

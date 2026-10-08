@@ -39,7 +39,7 @@ export function EventBadge({ name, className }: { name: string; className?: stri
   )
 }
 
-/** On-chain value: ETH first (the truth), USD at the configured rate second. */
+/** On-chain value: ETH first (the truth), rupees at the configured rate second. */
 export function EthValue({ eth, className }: { eth?: string | null; className?: string }) {
   if (eth == null) return <span className="text-muted-foreground">—</span>
   const n = Number(eth)

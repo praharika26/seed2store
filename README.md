@@ -75,7 +75,7 @@ All captured from the live app: Sepolia + MongoDB Atlas + Pinata, real transacti
 | | |
 |---|---|
 | ![Landing](docs/media/screens/01-landing.jpg) **Landing.** Live lots and a real certificate card. | ![List a lot](docs/media/screens/02-wizard-crop.jpg) **List a lot.** The certificate fills in as you type. |
-| ![Price it](docs/media/screens/04-wizard-price.jpg) **Price it.** Floor, asking and buy-now price, in USD. | ![Published](docs/media/screens/05-lot-live.jpg) **Published.** Fingerprinted (keccak-256) and pinned to IPFS via Pinata. |
+| ![Price it](docs/media/screens/04-wizard-price.jpg) **Price it.** Floor, asking and buy-now price, in rupees (₹). | ![Published](docs/media/screens/05-lot-live.jpg) **Published.** Fingerprinted (keccak-256) and pinned to IPFS via Pinata. |
 | ![Mint the NFT](docs/media/screens/06-mint-tracker.jpg) **Mint the NFT.** `createCropCertificate()` signed, broadcast, mined on Sepolia, then recorded in MongoDB. | ![Minted](docs/media/screens/07-lot-minted.jpg) **Minted.** The lot now carries ERC-721 certificate #4. |
 | ![On-chain activity](docs/media/screens/08-lot-chain-activity.jpg) **On-chain activity.** Every event for this lot, linked to its transaction and Etherscan. | ![The market](docs/media/screens/09-market.jpg) **The market.** Certified lots with real, openly licensed photos. |
 | ![Auction / bidding](docs/media/screens/11-auction-leading.jpg) **Auction / bidding.** An on-chain auction (NFT #2) with a live bid. | ![Buy crops](docs/media/screens/12-buy-dialog.jpg) **Buy crops.** Buy now settles on-chain with `directPurchase()`. |
@@ -248,7 +248,7 @@ sequenceDiagram
 2. Run `npm run deploy:sepolia`. It deploys, records the deploy block, sets the Etherscan explorer, switches to a testnet price rate (`NEXT_PUBLIC_ETH_USD=5000000`, so a $67,200 lot costs ~0.013 test-ETH), and verifies the source on Sourcify (and on Etherscan if `ETHERSCAN_API_KEY` is set).
 3. Restart `npm run dev`. Use **MetaMask on Sepolia** (or a burner wallet you fund from a faucet) for growers and buyers.
 
-**Pricing:** listings are in USD. On-chain values are converted at `NEXT_PUBLIC_ETH_USD` (default 2500 USD per ETH). Bids always send at least the contract's own minimum, so rounding can never make a valid bid revert.
+**Pricing:** listings are in Indian rupees (₹). On-chain values are converted at a fixed test rate of ₹41,50,00,000 per Sepolia ETH (`ETH_USD` in `lib/config.ts`), so lots cost tiny amounts of test ETH. Bids always send at least the contract's own minimum, so rounding can never make a valid bid revert.
 
 **Metadata:** OpenSea-compatible JSON at `/api/metadata/:id`, or pinned to IPFS when `PINATA_JWT` is set.
 
@@ -308,7 +308,6 @@ Copy `.env.example` to `.env.local`. Everything is optional.
 | `NEXT_PUBLIC_CHAIN_ID` | `31337` | Chain ID (Hardhat 31337, Ganache 1337, Sepolia 11155111) |
 | `NEXT_PUBLIC_RPC_URL` | `http://127.0.0.1:8545` | RPC used by the burner wallet and server reads |
 | `NEXT_PUBLIC_CHAIN_NAME` / `NEXT_PUBLIC_EXPLORER_URL` | derived | Labels and explorer links |
-| `NEXT_PUBLIC_ETH_USD` | `2500` | USD per ETH for on-chain prices |
 | `RPC_URL` | — | Server-only RPC override |
 | `PINATA_JWT` / `PINATA_GATEWAY` | — | Pin lot photos and NFT metadata (`tokenURI` = `ipfs://…`) to IPFS via Pinata |
 | `NEXT_PUBLIC_DEPLOY_BLOCK` | `0` | First block the explorer scans (written by the deploy script) |

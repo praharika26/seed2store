@@ -17,7 +17,7 @@ export function SiteFooter() {
       </div>
       <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col gap-2 px-4 pb-10 text-xs sm:flex-row sm:justify-between sm:px-6 lg:px-8">
         <span>© {new Date().getFullYear()} Seed2Store</span>
-        <span>Prices shown in USD; on-chain settlement in ETH at the configured rate.</span>
+        <span>Prices shown in Indian rupees (₹); on-chain settlement in ETH at the configured rate.</span>
       </div>
     </footer>
   )

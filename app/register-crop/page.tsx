@@ -295,7 +295,7 @@ function Field({ label, htmlFor, hint, error, optional, children }: { label: str
 function MoneyInput({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative">
-      <span className="text-muted-foreground absolute top-1/2 left-3.5 -translate-y-1/2">$</span>
+      <span className="text-muted-foreground absolute top-1/2 left-3.5 -translate-y-1/2">₹</span>
       <Input id={id} type="number" inputMode="decimal" step="0.01" min="0" value={value} onChange={(e) => onChange(e.target.value)} className="tabular pl-7" />
     </div>
   )

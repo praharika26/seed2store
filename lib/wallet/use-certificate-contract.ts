@@ -131,7 +131,7 @@ export function useCertificateContract() {
     const { receipt, h } = await run(
       "Placing your bid (escrowed by the contract)",
       "placeBid",
-      [["auctionId", `#${auctionId}`], ["bid", `$${usd.toLocaleString()} → ${eth(wei(usd))}`]],
+      [["auctionId", `#${auctionId}`], ["bid", `₹${usd.toLocaleString("en-IN")} → ${eth(wei(usd))}`]],
       async (c) => {
         // Send at least the contract's own minimum so USD↔ETH rounding can never make a valid bid revert.
         const onchain = await c.getAuction(BigInt(auctionId))

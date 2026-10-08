@@ -140,10 +140,10 @@ function AuctionBox({ crop, auction, isOwner, actions, onChange }: { crop: Crop;
         </div>
       ) : user ? (
         <div className="px-6 pt-5 pb-6">
-          <Label htmlFor="bid" className="text-muted-foreground text-xs font-normal">Your bid for the whole lot (USD)</Label>
+          <Label htmlFor="bid" className="text-muted-foreground text-xs font-normal">Your bid for the whole lot (₹)</Label>
           <div className="mt-2 flex gap-2">
             <div className="relative flex-1">
-              <span className="text-muted-foreground absolute top-1/2 left-3.5 -translate-y-1/2">$</span>
+              <span className="text-muted-foreground absolute top-1/2 left-3.5 -translate-y-1/2">₹</span>
               <Input id="bid" type="number" inputMode="decimal" min={min} step={auction.bid_increment} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={min.toString()} className="tabular pl-7 text-lg" onKeyDown={(e) => e.key === "Enter" && submit()} />
             </div>
             <Button variant="live" size="lg" className="h-11" disabled={!valid || actions.busy === "bid"} onClick={submit}>
@@ -309,7 +309,7 @@ function OfferDialog({ crop, open, onOpenChange, onDone }: { crop: Crop; open: b
             <p className="text-muted-foreground text-xs">{wholeLot ? "Certified lots trade whole." : `Up to ${formatQty(crop.quantity)} ${crop.unit}`}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="offer-price">Price per {crop.unit} (USD)</Label>
+            <Label htmlFor="offer-price">Price per {crop.unit} (₹)</Label>
             <Input id="offer-price" type="number" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="tabular" />
             <p className={cn("text-xs", belowMin ? "text-live" : "text-muted-foreground")}>{belowMin ? `Below the grower's minimum of ${formatUSD(crop.minimum_price, { cents: true })}` : crop.starting_price ? `Asking ${formatUSD(crop.starting_price, { cents: true })}` : " "}</p>
           </div>
@@ -414,7 +414,7 @@ function StartAuctionDialog({ crop, open, onOpenChange, actions, onDone }: { cro
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="a-start">Opening bid (USD, lot)</Label>
+            <Label htmlFor="a-start">Opening bid (₹, lot)</Label>
             <Input id="a-start" type="number" value={start} onChange={(e) => setStart(e.target.value)} className="tabular" />
             <p className="text-muted-foreground text-xs">≈ {formatUSD(s / crop.quantity, { cents: true })}/{crop.unit}</p>
           </div>

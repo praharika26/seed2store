@@ -46,7 +46,7 @@ export default function StatusPage() {
             body={data.storage === "pinata" ? "Photos and token metadata are pinned to IPFS." : data.storage === "gridfs" ? "Photos are stored content-addressed in the `uploads` GridFS bucket. Set PINATA_JWT to pin to IPFS instead." : "Photos are stored content-addressed under .data/uploads."}
           />
           <Item state={data.authSecret ? "ok" : "off"} title="Session signing" body={data.authSecret ? "AUTH_SECRET is set." : `Using an auto-generated secret stored in the ${data.database.kind === "mongodb" ? "MongoDB meta collection" : "local database"}. Set AUTH_SECRET to manage it yourself.`} />
-          <Item state="ok" title="Price oracle" body={`Fixed rate: 1 ETH = $${data.ethUsd.toLocaleString()} (NEXT_PUBLIC_ETH_USD).`} />
+          <Item state="ok" title="Price oracle" body={`Fixed rate: 1 ETH = ₹${data.ethUsd.toLocaleString("en-IN")}.`} />
         </div>
       )}
     </div>
